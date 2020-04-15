@@ -12,14 +12,11 @@ module Abank
 
   # CLI para carregar folhas calculo comuns no bigquery
   class CLI < Thor
-    class_option :d, banner: 'DIR',
-                     default: "/home/#{ID}/Downloads",
-                     desc: 'Onde procurar folhas calculo'
-    class_option :x, banner: 'EXT',
-                     default: '.xlsx',
-                     desc: 'Extensao das folhas calculo'
-
     desc 'load', 'carrega dados xlsx no bigquery'
+    option :d, banner: 'DIR', default: "/home/#{ID}/Downloads",
+               desc: 'Onde procurar folhas calculo'
+    option :x, banner: 'EXT', default: '.xlsx',
+               desc: 'Extensao das folhas calculo'
     # processa xlsx
     def load
       Dir.glob("#{options[:d]}/*#{options[:x]}").sort.each do |f|
@@ -28,6 +25,10 @@ module Abank
     end
 
     desc 'mostra', 'mostra dados do xlsx'
+    option :d, banner: 'DIR', default: "/home/#{ID}/Downloads",
+               desc: 'Onde procurar folhas calculo'
+    option :x, banner: 'EXT', default: '.xlsx',
+               desc: 'Extensao das folhas calculo'
     # mostra xlsx
     def mostra
       Dir.glob("#{options[:d]}/*#{options[:x]}").sort.each do |f|

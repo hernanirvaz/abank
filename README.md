@@ -20,7 +20,10 @@ Or install it yourself as:
 
 ## Usage
 
-TODO: Write usage instructions here
+    $ abank mostra          # mostra dados do xlsx
+    $ abank load            # carrega dados xlsx no bigquery
+    $ abank classifica      # classifica arquivo no bigquery
+    $ abank halp            # ajuda aos comandos
 
 ## Development
 

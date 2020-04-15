@@ -18,6 +18,7 @@ module Abank
     # processa linhas folha calculo
     def processa
       n = 0
+      # usada somente a primeira sheet
       book.sheet(0).parse(header_search: HT) do |r|
         n += 1
         puts n == 1 ? "\n" + book.info : processa_row(r)
@@ -28,6 +29,7 @@ module Abank
     # mostra linhas folha calculo
     def show
       n = 0
+      # usada somente a primeira sheet
       book.sheet(0).parse(header_search: HT) do |r|
         n += 1
         puts n == 1 ? "\n" + book.info : show_row(r)
