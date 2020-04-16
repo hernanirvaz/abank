@@ -1,6 +1,6 @@
 # Abank [![Build Status](https://travis-ci.com/hernanirvaz/abank.svg?branch=master)](https://travis-ci.com/hernanirvaz/abank)
 
-Arquiva <conta-corrente>.xlsx, <conta-cartao>.xlsx no bigquery. Pode apagar movimentos similares/existentes ja no bigquery. Pode ainda classificar movimentos ja no bigquery.
+Arquiva conta-corrente.xlsx, conta-cartao.xlsx no bigquery. Pode apagar movimentos similares/existentes ja no bigquery. Pode ainda classificar movimentos ja no bigquery.
 
 ## Installation
 
