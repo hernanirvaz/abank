@@ -20,10 +20,10 @@ Or install it yourself as:
 
 ## Usage
 
-    $ abank mostra          # mostra dados do xlsx
-    $ abank load            # carrega dados xlsx no bigquery
+    $ abank mostra          # mostra dados da folha calculo
+    $ abank load            # carrega dados da folha calculo no bigquery
     $ abank classifica      # classifica arquivo no bigquery
-    $ abank halp            # ajuda aos comandos
+    $ abank help [COMANDO]  # ajuda aos comandos
 
 ## Development
 

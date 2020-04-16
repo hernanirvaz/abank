@@ -9,7 +9,7 @@ module Abank
     # prepara linha folha calculo para processamento
     #
     # @param [Hash] has da linha em processamento
-    def corrige_dados(has)
+    def corrige_hash(has)
       @row = has.values
       @row[2] = row[2].strip
       @row[3] = -1 * row[3] if num > 1
@@ -38,23 +38,23 @@ module Abank
 
     # processa linha folha calculo para arquivo
     #
-    # @param (see corrige_dados)
+    # @param (see corrige_hash)
     # @return [String] linha folha calculo processada
     def processa_row(has)
-      corrige_dados(has)
+      corrige_hash(has)
       sql_select
       if rnaoexiste? then row_str + (sql_insert == 1 ? ' NOVA' : ' ERRO')
-      elsif rexiste? then row_existente
       elsif rsimila? then row_similar
+      elsif rexiste? then row_existente
       end
     end
 
     # obtem linha folha calculo para apresentacao
     #
-    # @param (see corrige_dados)
+    # @param (see corrige_hash)
     # @return (see row_str)
     def show_row(has)
-      corrige_dados(has)
+      corrige_hash(has)
       row_str
     end
 
@@ -66,12 +66,14 @@ module Abank
 
     # @return [String] linha folha calculo similar
     def row_similar
-      row_str + " PARECIDA #{sql.first[:ds].strip}"
+      d = apaga['s'] ? sql_delete : 0
+      row_str + " SIMILAR#{d.zero? ? ' ' : ' APAGADA '}#{sql.first[:ds].strip}"
     end
 
     # @return [String] linha folha calculo existente
     def row_existente
-      row_str + ' EXISTE'
+      d = apaga['e'] ? sql_delete : 0
+      row_str + " EXISTENTE#{d.zero? ? '' : ' APAGADA'}"
     end
 
     # @return [Boolean] linha folha calculo nao existe no bigquery?

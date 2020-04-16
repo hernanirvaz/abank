@@ -20,14 +20,20 @@ module Abank
     attr_reader :sql
     # @return [Integer] numero conta
     attr_reader :num
+    # @return [Hash<String, Boolean>] opcoes apagar linhas
+    attr_reader :apaga
 
     # permite processa folhas calculo comuns no bigquery
     #
     # @param [String] xls folha calculo para processar
+    # @param [Hash<String, Boolean>] apaga opcoes apagar linhas
+    # @option apaga [Boolean] s apaga linhas similares sim/nao?
+    # @option apaga [Boolean] e apaga linhas existentes sim/nao?
     # @return [Bigquery] acesso folha calculo & bigquery
-    def initialize(xls)
+    def initialize(xls = '', apaga = {})
       @book = Roo::Spreadsheet.open(xls) if xls.size.positive?
       @num = xls.match?(/card/i) ? 2 : 1
+      @apaga = apaga
       # usa env GOOGLE_APPLICATION_CREDENTIALS para obter credentials
       # @see https://cloud.google.com/bigquery/docs/authentication/getting-started
       @api = Google::Cloud::Bigquery.new
@@ -56,12 +62,15 @@ module Abank
     #
     # @return [Array<Hash>] resultado sql
     def sql_select
-      s = "select * from ab.mv where nc=#{num}" \
-            " and dl='#{row[0].strftime(DF)}'" \
-            " and vl=#{row[3]}"
-
       # se array.count > 1 => nao fazer nada
-      @sql = job_bigquery?(s) ? [{}, {}] : job.data
+      @sql = job_bigquery?('select * ' + sql_where) ? [{}, {}] : job.data
+    end
+
+    # @return [String] parte sql para processamento linhas similares
+    def sql_where
+      "from ab.mv where nc=#{num}" \
+      " and dl='#{row[0].strftime(DF)}'" \
+      " and vl=#{row[3]}"
     end
 
     # classifica linhas
@@ -83,6 +92,11 @@ module Abank
     # @return [String] campos calculados da linha bigquery
     def sql_insert_calculado
       ",#{row[1].year},#{row[1].month},null,'#{row[3].positive? ? 'c' : 'd'}')"
+    end
+
+    # @return [Integer] numero linhas apagadas
+    def sql_delete
+      dml('delete ' + sql_where + " and ds='#{sql.first[:ds].strip}'")
     end
   end
 end
