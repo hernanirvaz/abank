@@ -1,6 +1,6 @@
-# Abank [![Build Status](https://travis-ci.org/hernanirvaz/abank.svg?branch=master)](https://travis-ci.org/hernanirvaz/abank)
+# Abank [![Build Status](https://travis-ci.com/hernanirvaz/abank.svg?branch=master)](https://travis-ci.com/hernanirvaz/abank)
 
-Arquiva activobank.xlsx no bigquery. Pode arquivar movimentos conta corrente e cartoes. Pode ainda classificar dados ja no bigquery.
+Arquiva <conta-corrente>.xlsx, <conta-cartao>.xlsx no bigquery. Pode apagar movimentos similares/existentes ja no bigquery. Pode ainda classificar movimentos ja no bigquery.
 
 ## Installation
 
@@ -20,10 +20,10 @@ Or install it yourself as:
 
 ## Usage
 
+    $ abank help [COMANDO]  # ajuda aos comandos
     $ abank mostra          # mostra dados da folha calculo
     $ abank load            # carrega dados da folha calculo no bigquery
     $ abank classifica      # classifica arquivo no bigquery
-    $ abank help [COMANDO]  # ajuda aos comandos
 
 ## Development
 

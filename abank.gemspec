@@ -10,10 +10,12 @@ Gem::Specification.new do |spec|
   spec.homepage    = 'https://github.com/hernanirvaz/abank'
   spec.license     = 'MIT'
 
-  spec.summary     = 'Arquiva activobank.xlsx no bigquery.'
+  spec.summary     = 'Arquiva <conta-corrente>.xlsx,' \
+                     ' <conta-cartao>.xlsx no bigquery.'
   spec.description = spec.summary +
-                     ' Pode arquivar movimentos conta corrente e cartoes.' \
-                     ' Pode ainda classificar dados ja no bigquery.'
+                     ' Pode apagar movimentos similares/existentes' \
+                     ' ja no bigquery.' \
+                     ' Pode ainda classificar movimentos ja no bigquery.'
 
   spec.metadata['homepage_uri'] = spec.homepage
   spec.metadata['yard.run'] = 'yard'
