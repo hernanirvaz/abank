@@ -1,4 +1,4 @@
-# Abank
+# Abank [![Build Status](https://travis-ci.org/hernanirvaz/abank.svg?branch=master)](https://travis-ci.org/hernanirvaz/abank)
 
 Arquiva activobank.xlsx no bigquery. Pode arquivar movimentos conta corrente e cartoes. Pode ainda classificar dados ja no bigquery.
 
