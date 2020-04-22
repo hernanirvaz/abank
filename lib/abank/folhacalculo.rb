@@ -4,58 +4,39 @@ module Abank
   HT = ['Data Lanc.', 'Data Valor', 'Descrição', 'Valor'].freeze
   RF = '%<v3>-50.50s %<v4>8.2f'
 
-  # folhas calculo comuns no bigquery
+  # classifica & arquiva dados das folhas calculo activobank no bigquery
   class Bigquery
-    # prepara linha folha calculo para processamento
+    # corrige linha folha calculo para processamento
     #
     # @param [Hash] has da linha em processamento
     def corrige_hash(has)
       @row = has.values
       @row[2] = row[2].strip
-      @row[3] = -1 * row[3] if num > 1
+      @row[3] = -1 * row[3] if conta > 1
     end
 
-    # processa linhas folha calculo
+    # processa linhas folha calculo & classifica bigquery
     def processa
       n = 0
-      # usada somente a primeira sheet
-      book.sheet(0).parse(header_search: HT) do |r|
+      folha.sheet(0).parse(header_search: HT) do |r|
         n += 1
-        puts n == 1 ? "\n" + book.info : processa_row(r)
+        puts n == 1 ? "\n" + folha.info : processa_row(r)
       end
-      sql_update
-    end
-
-    # mostra linhas folha calculo
-    def show
-      n = 0
-      # usada somente a primeira sheet
-      book.sheet(0).parse(header_search: HT) do |r|
-        n += 1
-        puts n == 1 ? "\n" + book.info : show_row(r)
-      end
+      classifica
     end
 
     # processa linha folha calculo para arquivo
     #
     # @param (see corrige_hash)
-    # @return [String] linha folha calculo processada
+    # @return [String] texto informativo do processamento
     def processa_row(has)
       corrige_hash(has)
       sql_select
-      if rnaoexiste? then row_str + (sql_insert == 1 ? ' NOVA' : ' ERRO')
-      elsif rsimila? then row_similar
-      elsif rexiste? then row_existente
+      if row_naoexiste? then row_str + (sql_insert == 1 ? ' NOVA' : ' ERRO')
+      elsif row_simila? then row_similar
+      elsif row_existe? then row_existente
+      else                   row_multiplas
       end
-    end
-
-    # obtem linha folha calculo para apresentacao
-    #
-    # @param (see corrige_hash)
-    # @return (see row_str)
-    def show_row(has)
-      corrige_hash(has)
-      row_str
     end
 
     # @return [String] linha folha calculo formatada
@@ -66,28 +47,40 @@ module Abank
 
     # @return [String] linha folha calculo similar
     def row_similar
-      d = apaga['s'] ? sql_delete : 0
-      row_str + " SIMILAR#{d.zero? ? ' ' : ' APAGADA '}#{sql.first[:ds].strip}"
+      d = linha[:s] ? sql_delete : 0
+      row_str + ' SIMILAR' + str_apagadas(d) + sql.first[:ds].strip
     end
 
     # @return [String] linha folha calculo existente
     def row_existente
-      d = apaga['e'] ? sql_delete : 0
-      row_str + " EXISTENTE#{d.zero? ? '' : ' APAGADA'}"
+      d = linha[:e] ? sql_delete : 0
+      row_str + ' EXISTENTE' + str_apagadas(d)
+    end
+
+    # @return [String] linha folha calculo existencia multipla
+    def row_multiplas
+      d = linha[:m] ? sql_delete : 0
+      row_str + ' MULTIPLAS ' + sql.count.to_s + str_apagadas(d)
+    end
+
+    # @param [Integer] numero linhas apagadas
+    # @return [String] texto formatado linhas apagadas
+    def str_apagadas(num)
+      num.positive? ? ' & ' + num.to_s + ' APAGADA(S) ' : ' '
     end
 
     # @return [Boolean] linha folha calculo nao existe no bigquery?
-    def rnaoexiste?
+    def row_naoexiste?
       sql.count.zero?
     end
 
     # @return [Boolean] linha folha calculo existe no bigquery?
-    def rexiste?
+    def row_existe?
       sql.count == 1 && sql.first[:ds].strip == row[2]
     end
 
-    # @return [Boolean] linha folha calculo parecida no bigquery?
-    def rsimila?
+    # @return [Boolean] linha folha calculo existe parecida no bigquery?
+    def row_simila?
       sql.count == 1 && sql.first[:ds].strip != row[2]
     end
   end

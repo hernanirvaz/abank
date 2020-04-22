@@ -1,10 +1,11 @@
 # frozen_string_literal: true
 
 require 'thor'
-require 'abank/version'
 require 'abank/bigquery'
 require 'abank/folhacalculo'
+require 'abank/version'
 
+# @author Hernani Rodrigues Vaz
 module Abank
   ID = `whoami`.chomp
 
@@ -18,15 +19,16 @@ module Abank
     option :x, banner: 'EXT', default: '.xlsx',
                desc: 'Extensao das folhas calculo'
     option :s, type: :boolean, default: false,
-               desc: 'apaga linhas similares no bigquery'
+               desc: 'apaga linha similar no bigquery'
     option :e, type: :boolean, default: false,
-               desc: 'apaga linhas existentes no bigquery'
-    # processa xlsx
+               desc: 'apaga linha igual no bigquery'
+    option :m, type: :boolean, default: false,
+               desc: 'apaga linhas existencia multipla no bigquery'
+    # processa folha calculo
     def load
-      # opcoes apagar linhas
-      d = options.select { |_, v| [true, false].include?(v) }
       Dir.glob("#{options[:d]}/*#{options[:x]}").sort.each do |f|
-        Bigquery.new(f, d).processa
+        Bigquery.new(f, { s: options[:s], e: options[:e],
+                          m: options[:m], i: true }).processa
       end
     end
 
@@ -35,17 +37,17 @@ module Abank
                desc: 'Onde procurar folhas calculo'
     option :x, banner: 'EXT', default: '.xlsx',
                desc: 'Extensao das folhas calculo'
-    # mostra xlsx
+    # mostra folha calculo
     def mostra
       Dir.glob("#{options[:d]}/*#{options[:x]}").sort.each do |f|
-        Bigquery.new(f).show
+        Bigquery.new(f).processa
       end
     end
 
     desc 'classifica', 'classifica arquivo no bigquery'
-    # classifica bigquery
+    # classifica arquivo no bigquery
     def classifica
-      Bigquery.new.sql_update
+      Bigquery.new.classifica
     end
 
     default_task :mostra
