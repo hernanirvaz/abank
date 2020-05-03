@@ -2,7 +2,7 @@
 
 module Abank
   HT = ['Data Lanc.', 'Data Valor', 'Descrição', 'Valor'].freeze
-  RF = '%<v3>-50.50s %<v4>8.2f'
+  RF = '%<v3>-35.35s %<v4>8.2f'
 
   # classifica & arquiva dados das folhas calculo activobank no bigquery
   class Bigquery
