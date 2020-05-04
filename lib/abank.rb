@@ -18,6 +18,8 @@ module Abank
                desc: 'Onde procurar folhas calculo'
     option :x, banner: 'EXT', default: '.xlsx',
                desc: 'Extensao das folhas calculo'
+    option :n, banner: 'NUM', type: :numeric, default: 0,
+               desc: 'Correcao dias para data valor'
     option :s, type: :boolean, default: false,
                desc: 'apaga linha similar no bigquery'
     option :e, type: :boolean, default: false,
@@ -27,8 +29,7 @@ module Abank
     # processa folha calculo
     def load
       Dir.glob("#{options[:d]}/*#{options[:x]}").sort.each do |f|
-        Bigquery.new(f, { s: options[:s], e: options[:e],
-                          m: options[:m], i: true }).processa
+        Bigquery.new(f, load_ops).processa
       end
     end
 
@@ -48,6 +49,14 @@ module Abank
     # classifica arquivo no bigquery
     def classifica
       Bigquery.new.classifica
+    end
+
+    no_commands do
+      # @return [Hash] ops opcoes trabalho com linhas para load
+      def load_ops
+        { s: options[:s], e: options[:e],
+          m: options[:m], i: true, n: options[:n] }
+      end
     end
 
     default_task :mostra

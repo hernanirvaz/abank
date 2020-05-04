@@ -12,7 +12,7 @@ module Abank
     attr_reader :apibq
     # @return [Roo::Excelx] folha calculo a processar
     attr_reader :folha
-    # @return [Hash<Symbol, Boolean>] opcoes trabalho com linhas
+    # @return [Hash] opcoes trabalho com linhas
     attr_reader :linha
     # @return [Integer] numero conta
     attr_reader :conta
@@ -25,14 +25,16 @@ module Abank
     attr_reader :sql
 
     # @param [String] xls folha calculo para processar
-    # @param [Hash<Symbol, Boolean>] ops opcoes trabalho com linhas
+    # @param [Hash] ops opcoes trabalho com linhas
     # @option ops [Boolean] :s (false) apaga linha similar?
     # @option ops [Boolean] :e (false) apaga linha igual?
     # @option ops [Boolean] :m (false) apaga linhas existencia multipla?
     # @option ops [Boolean] :i (false) insere linha nova?
+    # @option ops [Numeric] :n (0) numero dias correcao para data valor
     # @return [Bigquery] acesso folhas calculo activobank
     #  & correspondente bigquery dataset
-    def initialize(xls = '', ops = { s: false, e: false, m: false, i: false })
+    def initialize(xls = '', ops = { s: false, e: false, m: false,
+                                     i: false, n: 0 })
       # usa env GOOGLE_APPLICATION_CREDENTIALS para obter credentials
       # @see https://cloud.google.com/bigquery/docs/authentication/getting-started
       @apibq = Google::Cloud::Bigquery.new
@@ -93,8 +95,13 @@ module Abank
       return 1 unless linha[:i]
 
       dml('insert hernanilr.ab.mv(dl,dv,ds,vl,nc,ano,mes,ct,tp) VALUES(' \
-        "'#{row[0].strftime(DF)}','#{row[1].strftime(DF)}','#{row[2]}'" +
+          "'#{row[0].strftime(DF)}','#{data_valor.strftime(DF)}','#{row[2]}'" +
         str_insert1)
+    end
+
+    # @return [Date] data valor corrigida
+    def data_valor
+      row[1] + linha[:n].to_i
     end
 
     # @return [String] campos extra da linha bigquery
@@ -104,7 +111,8 @@ module Abank
 
     # @return [String] campos calculados da linha bigquery
     def str_insert2
-      ",#{row[1].year},#{row[1].month},null,'#{row[3].positive? ? 'c' : 'd'}')"
+      ",#{data_valor.year},#{data_valor.month},null," \
+        "'#{row[3].positive? ? 'c' : 'd'}')"
     end
 
     # @return [Integer] numero linhas apagadas
