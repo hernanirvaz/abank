@@ -54,6 +54,19 @@ module Abank
       @job.failed?
     end
 
+    # executa Stored procedure (SP) job bigquery
+    #
+    # @param (see job_bigquery?)
+    # @return (see num_insert)
+    def esp(sql)
+      job_bigquery?(sql) ? 0 : num_insert(apibq.jobs(parent_job: job))
+    end
+
+    # @return [Integer] numero linhas inseridas
+    def num_insert(sps)
+      sps.find { |j| j.statement_type == 'INSERT' }.num_dml_affected_rows
+    end
+
     # cria Data Manipulation Language (DML) job bigquery
     #
     # @param (see job_bigquery?)
@@ -88,6 +101,7 @@ module Abank
                '  from (select * from hernanilr.ab.cl) as tt' \
                ' where mv.dl=tt.dl and mv.dv=tt.dv' \
                '   and mv.ds=tt.ds and mv.vl=tt.vl').to_s
+      puts 'RENDAS INSERIDAS ' + esp('call hernanilr.ab.rendas()').to_s
     end
 
     # @return [Integer] numero linhas inseridas
