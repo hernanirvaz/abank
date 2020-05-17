@@ -30,11 +30,13 @@ module Abank
     # @option ops [Boolean] :e (false) apaga linha igual?
     # @option ops [Boolean] :m (false) apaga linhas existencia multipla?
     # @option ops [Boolean] :i (false) insere linha nova?
+    # @option ops [Boolean] :t (false) apaga rendas totalmente?
     # @option ops [Numeric] :n (0) numero dias correcao para data valor
+    # @option ops [String]  :r identificador contrato arrendamento
     # @return [Bigquery] acesso folhas calculo activobank
     #  & correspondente bigquery dataset
     def initialize(xls = '', ops = { s: false, e: false, m: false,
-                                     i: false, n: 0 })
+                                     i: false, t: false, n: 0, r: '' })
       # usa env GOOGLE_APPLICATION_CREDENTIALS para obter credentials
       # @see https://cloud.google.com/bigquery/docs/authentication/getting-started
       @apibq = Google::Cloud::Bigquery.new
@@ -72,6 +74,7 @@ module Abank
     # @param (see job_bigquery?)
     # @return [Integer] numero linhas afetadas
     def dml(sql)
+      p sql
       job_bigquery?(sql) ? 0 : job.num_dml_affected_rows
     end
 
@@ -96,12 +99,48 @@ module Abank
     def classifica
       return unless linha[:i]
 
-      puts 'LINHAS CLASSIFICADAS ' +
-           dml('update hernanilr.ab.mv set mv.ct=tt.nct' \
-               '  from (select * from hernanilr.ab.cl) as tt' \
-               ' where mv.dl=tt.dl and mv.dv=tt.dv' \
-               '   and mv.ds=tt.ds and mv.vl=tt.vl').to_s
+      i = dml('update hernanilr.ab.mv set mv.ct=tt.nct' \
+              '  from (select * from hernanilr.ab.cl) as tt' \
+              ' where mv.dl=tt.dl and mv.dv=tt.dv' \
+              '   and mv.ds=tt.ds and mv.vl=tt.vl')
+      puts 'LINHAS CLASSIFICADAS ' + i.to_s
+      return unless i.positive?
+
+      atualiza
+    end
+
+    # (see CLI#atualiza)
+    def atualiza
       puts 'RENDAS INSERIDAS ' + esp('call hernanilr.ab.rendas()').to_s
+    end
+
+    # (see CLI#cria)
+    def cria
+      i = dml('insert into hernanilr.ab.re ' + sql_contrato)
+      puts i.zero? ? 'NAO EXISTE CONTRATO' : 'CONTRATO INSERIDO'
+      return unless i.positive? && linha[:t]
+
+      atualiza
+    end
+
+    # @return [String] sql obtem dados inicio contrato arrendamento
+    def sql_contrato
+      'select ct,EXTRACT(YEAR FROM DATE_TRUNC(dl,MONTH)) as ano,0 as cnt' \
+                                 ',DATE_TRUNC(dl,MONTH) as dl,0 dias' \
+      '  from hernanilr.ab.mv' \
+      " where ct='#{linha[:r]}' " \
+      'order by dl limit 1'
+    end
+
+    # (see CLI#apaga)
+    def apaga
+      puts 'RENDAS APAGADAS ' + dml(sql_apaga).to_s
+    end
+
+    # @return [String] sql apaga rendas
+    def sql_apaga
+      "delete from hernanilr.ab.re where ct='#{linha[:r]}'" +
+        (linha[:t] ? '' : ' and cnt>0')
     end
 
     # @return [Integer] numero linhas inseridas

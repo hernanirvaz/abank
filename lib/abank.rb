@@ -45,17 +45,43 @@ module Abank
       end
     end
 
-    desc 'classifica', 'classifica arquivo no bigquery'
-    # classifica arquivo no bigquery
+    desc 'classifica', 'classifica movimentos no bigquery'
+    # classifica movimentos no bigquery
     def classifica
-      Bigquery.new.classifica
+      Bigquery.new('', { i: true }).classifica
+    end
+
+    desc 'atualiza', 'atualiza rendas no arquivo bigquery'
+    # atualiza rendas no arquivo bigquery
+    def atualiza
+      Bigquery.new.atualiza
+    end
+
+    desc 'cria', 'cria contrato arrendamento/rendas no arquivo bigquery'
+    option :r, banner: 'REN', required: true,
+               desc: 'identificador contrato arrendamento a criar'
+    option :t, type: :boolean, default: false,
+               desc: 'trabalha com renda inicio ou todas'
+    # cria contrato arrendamento/rendas no arquivo bigquery
+    def cria
+      Bigquery.new('', { r: options[:r], t: options[:t] }).cria
+    end
+
+    desc 'apaga', 'apaga contrato arrendamento/rendas no arquivo bigquery'
+    option :r, banner: 'REN', required: true,
+               desc: 'identificador contrato arrendamento a apagar'
+    option :t, type: :boolean, default: false,
+               desc: 'trabalha com renda inicio ou todas'
+    # apaga contrato arrendamento/rendas no arquivo bigquery
+    def apaga
+      Bigquery.new('', { r: options[:r], t: options[:t] }).apaga
     end
 
     no_commands do
       # @return [Hash] ops opcoes trabalho com linhas para load
       def load_ops
-        { s: options[:s], e: options[:e],
-          m: options[:m], i: true, n: options[:n] }
+        { s: options[:s], e: options[:e], m: options[:m],
+          i: true, t: false, n: options[:n], r: '' }
       end
     end
 
