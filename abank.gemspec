@@ -10,12 +10,9 @@ Gem::Specification.new do |spec|
   spec.homepage    = 'https://github.com/hernanirvaz/abank'
   spec.license     = 'MIT'
 
-  spec.summary     = 'Arquiva <conta-corrente>.xlsx,' \
-                     ' <conta-cartao>.xlsx no bigquery.'
-  spec.description = spec.summary +
-                     ' Pode apagar movimentos similares/existentes' \
-                     ' ja no bigquery.' \
-                     ' Pode ainda classificar movimentos ja no bigquery.'
+  spec.summary     = 'Arquiva movimentos conta-corrente, conta-cartao do activobank no bigquery.'
+  spec.description = spec.summary + ' Permite apagar/recriar movimentos/rendas ja no bigquery. ' \
+                     ' Permite ainda classificar movimentos no bigquery.'
 
   spec.metadata['homepage_uri'] = spec.homepage
   spec.metadata['yard.run'] = 'yard'
@@ -24,10 +21,10 @@ Gem::Specification.new do |spec|
 
   # Specify which files should be added to the gem when it is released.
   # The `git ls-files -z` loads files in RubyGem that have been added into git.
-  spec.files = Dir.chdir(File.expand_path(__dir__)) do
-    `git ls-files -z`.split("\x0")
-                     .reject { |f| f.match(%r{^(test|spec|features)/}) }
-  end
+  spec.files =
+    Dir.chdir(File.expand_path(__dir__)) do
+      `git ls-files -z`.split("\x0").reject { |f| f.match(%r{^(test|spec|features)/}) }
+    end
   spec.bindir        = 'exe'
   spec.executables   = spec.files.grep(%r{^exe/}) { |f| File.basename(f) }
   spec.require_paths = ['lib']

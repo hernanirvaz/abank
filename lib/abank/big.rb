@@ -2,137 +2,133 @@
 
 require 'google/cloud/bigquery'
 
-# class Contrato
+# @see Abank::Big
 class Abank::Big
   DF = '%Y-%m-%d'
 
+  # @return [Hash] opcoes trabalho
+  attr_reader :opcao
+
   # @return [Google::Cloud::Bigquery] API bigquery
-  attr_reader :api
-  # @return [Hash] opcoes trabalho com linhas
-  attr_reader :opl
+  attr_reader :bqapi
 
   # @return [Google::Cloud::Bigquery::QueryJob] job bigquery
-  attr_reader :job
-  # @return [Google::Cloud::Bigquery::Data] lista devolvida pelo select
-  attr_reader :resultados
+  attr_reader :bqjob
 
-  # @param [Hash] ops opcoes trabalho
-  # @option ops [Boolean] :s (false) apaga linha similar? (mv)
-  # @option ops [Boolean] :e (false) apaga linha igual? (mv)
-  # @option ops [Boolean] :m (false) apaga linhas existencia multipla? (mv)
-  # @option ops [Boolean] :i (false) insere linha nova? (mv)
-  # @option ops [String]  :v ('') data valor (mv)/data contrato (re)
-  # @option ops [String]  :g ('') classificacao movimentos (mv)
-  # @option ops [Boolean] :t (false) trabalha todoas as rendas? (re)
-  # @option ops [String]  :k ('') keys movimentos a apagar (mv)
-  # @return [Big] acesso bigquery dataset
-  def initialize(ops = {})
-    @opl = ops
-    @api ||= Google::Cloud::Bigquery.new
-    p ['Big', ops, api]
+  # @return [Google::Cloud::Bigquery::Data] resultado do select
+  attr_reader :bqres
+
+  # @return [Integer] numero linhas afetadas pela Data Manipulation Language (DML)
+  attr_reader :bqnrs
+
+  # @return [String] movimentos a inserir (values.mv)
+  attr_reader :mvvls
+
+  # @return [String] movimentos a apagar (keysin.mv)
+  attr_reader :mvkys
+
+  # acesso a base dados abank no bigquery
+  #
+  # @param [Hash] opc opcoes trabalho
+  # @option opc [String]  :k ('') movimentos a apagar (keysin.mv)
+  # @option opc [String]  :c ('') id contrato arrendamento (re)
+  # @option opc [String]  :d ('') data inicio contrato arrendamento (re)
+  # @option opc [Boolean] :t (false) trabalha todas as rendas? (re)
+  # @return [Hash] opcoes trabalho
+  def initialize(opc = {})
+    @opcao = opc
+    @bqapi = Google::Cloud::Bigquery.new
+    @mvvls = ''
+    @mvkys = opc.fetch(:k, '')
+    @ctide = opc.fetch(:c, '')
+    # p ['B', opcao]
+    opcao
   end
 
-  # (see CLI#classifica)
+  # (see CLI#tag)
   def mv_classifica
-    return unless opl[:i]
-
-    i = dml('update hernanilr.ab.mv set mv.ct=tt.nct ' \
-              'from (select * from hernanilr.ab.cl) as tt ' \
-             'where mv.dl=tt.dl and mv.dv=tt.dv ' \
-               'and mv.ds=tt.ds and mv.vl=tt.vl')
-    puts 'LINHAS CLASSIFICADAS ' + i.to_s
-    return unless i.positive?
-
-    re_atualiza
+    dml('update hernanilr.ab.mv set mv.ct=tt.nct ' \
+          'from (select * from hernanilr.ab.cl) as tt ' \
+         "where #{ky_mv}=tt.ky")
+    puts 'MOVIMENTOS CLASSIFICADOS ' + bqnrs.to_s
   end
 
-  # (see CLI#atualiza)
-  def re_atualiza
-    r = re_join(lista_ativos)
-    if r.size.zero?
-      puts 'NAO EXISTEM RENDAS NOVAS'
-    else
-      puts 'RENDAS CRIADAS ' + dml('insert hernanilr.ab.re VALUES' + r).to_s
+  # apaga movimentos & suas rendas associadas no bigquery
+  #
+  # @return [Big] acesso a base dados abank no bigquery
+  def mv_delete
+    vars_mv_work
+    if mvkys.size.positive?
+      # obtem lista contratos arrendamento associados aos movimentos a apagar
+      @ctlct = sel("select ct from hernanilr.ab.mv where #{ky_mv} in(#{mvkys}) and substr(ct,1,1)='r' group by 1")
+
+      # apaga rendas associadas e depois movimentos
+      @opcao[:t] = true
+      lr_apaga.mv_delete_dml
+
+      # para obrigar re_work a trabalhar com lista contratos (ctlct)
+      @bqnrs = 0
     end
+    self
   end
 
-  # (see CLI#apagamv)
-  def mv_apaga
-    e = ct_envolvidos
-    i = dml(sql_apaga_mv)
-    puts 'MOVIMENTOS APAGADOS ' + i.to_s
-    return unless i.positive? && e.count.positive?
-
-    e.map { |c| Contrato.new(c).re_apaga }
-
-    re_atualiza
+  # insere & classifica movimentos no bigquery
+  #
+  # @return [Big] acesso a base dados abank no bigquery
+  def mv_insert
+    if mvvls.size.positive?
+      dml('insert hernanilr.ab.mv VALUES' + mvvls)
+      puts 'MOVIMENTOS INSERIDOS ' + bqnrs.to_s
+      mv_classifica if bqnrs.positive?
+    end
+    self
   end
 
-  def ct_envolvidos
-    sel(sql_sel_mv).group_by { |r| r[:ct] }
-                   .delete_if { |k, _| !k || k[0] != 'r' }.keys
+  # inicializa variaveis para delete/insert movimentos
+  def vars_mv_work
+    @bqnrs = 0
+    @ctlct = []
+    @mvkys = mvkys[1..] if mvkys[0] == ','
+    @mvvls = mvvls[1..] if mvvls[0] == ','
   end
 
-  # @return [Array<Hash>] lista contratos com lista movimentos novos
-  def lista_ativos
-    sel(sql_ativos_re).map { |c| Contrato.new(c[:ct]).dados_contrato }.compact
+  # apaga movimentos no bigquery
+  def mv_delete_dml
+    dml("delete from hernanilr.ab.mv where #{ky_mv} in(#{mvkys})")
+    puts 'MOVIMENTOS APAGADOS ' + bqnrs.to_s
   end
 
-  # @param [Array<Hash>] lct lista contratos com lista movimentos novos
-  # @return [String] row formatada das novas rendas para inserir bigquery
-  def re_join(lct)
-    lct.map { |c| Contrato::Rendas.new(c).rendas }.flatten(1).join(',')
-  end
-
-  def sql_ativos_re
-    'SELECT ct from hernanilr.ab.re group by 1 order by 1'
-  end
-
-  def sql_sel_mv
-    'select * ' + sql_where_mv
-  end
-
-  # @return [String] sql apaga movimentos
-  def sql_apaga_mv
-    'delete ' + sql_where_mv
-  end
-
-  # @return [String] parte sql para processamento movimentos
-  def sql_where_mv
-    "from hernanilr.ab.mv where #{sql_digest_mv} in(#{opl[:k]})"
-  end
-
-  def sql_digest_mv
-    'FARM_FINGERPRINT(CONCAT(CAST(nc as STRING),' \
-      'ds,CAST(dl as STRING),CAST(vl as STRING)))'
+  # @return [String] expressao sql da chave de movimentos
+  def ky_mv
+    'FARM_FINGERPRINT(CONCAT(CAST(mv.nc as STRING),mv.ds,CAST(mv.dl as STRING),CAST(mv.vl as STRING)))'
   end
 
   # cria job bigquery & verifica execucao
   #
-  # @param [String] sql comando sql a executar
+  # @param [String] sql comando a executar
   # @return [Boolean] job ok?
-  def job_bigquery?(sql)
-    p sql
-    @job = api.query_job(sql)
-    @job.wait_until_done!
-    puts @job.error['message'] if @job.failed?
-    @job.failed?
+  def job?(sql)
+    # p sql
+    @bqjob = bqapi.query_job(sql)
+    @bqjob.wait_until_done!
+    puts @bqjob.error['message'] if @bqjob.failed?
+    @bqjob.failed?
   end
 
-  # executa Data Manipulation Language (DML) job no bigquery
+  # executa sql & devolve resultado do bigquery
   #
-  # @param (see job_bigquery?)
-  # @return [Integer] numero linhas afetadas
+  # @param (see job?)
+  # @param [Array] erro quando da erro no bigquery
+  # @return [Google::Cloud::Bigquery::Data] resultado do sql
+  def sel(sql, erro = [])
+    @bqres = job?(sql) ? erro : bqjob.data
+  end
+
+  # executa Data Manipulation Language (DML) no bigquery
+  #
+  # @param (see job?)
+  # @return [Integer] numero rows afetadas pelo dml
   def dml(sql)
-    job_bigquery?(sql) ? 0 : job.num_dml_affected_rows
-  end
-
-  # executa sql & devolve resultados do bigquery
-  #
-  # @param sql (see job_bigquery?)
-  # @param [Array] arr resultado quando da erro no bigquery
-  # @return [Google::Cloud::Bigquery::Data] resultado do sql num array<hash>
-  def sel(sql, arr = [])
-    @resultados = job_bigquery?(sql) ? arr : job.data
+    @bqnrs = job?(sql) ? 0 : bqjob.num_dml_affected_rows
   end
 end

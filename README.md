@@ -1,6 +1,6 @@
 # Abank [![Build Status](https://travis-ci.com/hernanirvaz/abank.svg?branch=master)](https://travis-ci.com/hernanirvaz/abank)
 
-Arquiva movimentos conta-corrente, conta-cartao do activobank no bigquery. Permite apagar movimentos similares/existentes ja no bigquery. Permite ainda classificar movimentos ja no bigquery.
+Arquiva movimentos conta-corrente, conta-cartao do activobank no bigquery. Permite apagar/recriar movimentos/rendas ja no bigquery. Permite ainda classificar movimentos no bigquery.
 
 ## Installation
 
@@ -20,10 +20,14 @@ Or install it yourself as:
 
 ## Usage
 
-    $ abank help [COMANDO]  # ajuda aos comandos
-    $ abank mostra          # mostra dados da folha calculo
-    $ abank load            # carrega dados da folha calculo no bigquery
-    $ abank classifica      # classifica arquivo no bigquery
+    $ abank apagamv -k=KEY[,KEY...] # apaga movimentos
+    $ abank apagact  -c=CONTRATO    # apaga contrato arrendamento
+    $ abank criact   -c=CONTRATO    # cria contrato arrendamento
+    $ abank recriact -c=CONTRATO    # atualiza rendas de contrato arrendamento
+    $ abank recriare                # atualiza rendas dos contratos ativos
+    $ abank load                    # carrega dados da folha calculo
+    $ abank show                    # mostra dados da folha calculo
+    $ abank tag                     # classifica movimentos
 
 ## Development
 

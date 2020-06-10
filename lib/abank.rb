@@ -9,92 +9,86 @@ require 'abank/version'
 
 # @author Hernani Rodrigues Vaz
 module Abank
-  ID = `whoami`.chomp
+  DR = "/home/#{`whoami`.chomp}/Downloads"
 
   class Error < StandardError; end
 
   # CLI para carregar folhas calculo comuns no bigquery
   class CLI < Thor
-    desc 'tag', 'classifica movimentos no bigquery'
-    # classifica movimentos no bigquery
+    desc 'tag', 'classifica movimentos'
+    # classifica movimentos
     def tag
-      Big.new(i: true).mv_classifica
+      Big.new.mv_classifica
     end
 
-    desc 'rendas', 'atualiza rendas no bigquery'
-    # atualiza rendas no bigquery
-    def rendas
-      Big.new.re_atualiza
+    desc 'apagamv', 'apaga movimentos'
+    option :k, banner: 'KEY[,KEY...]', required: true, desc: 'keys movimentos a apagar'
+    # apaga movimentos
+    def apagamv
+      Big.new(k: options[:k]).mv_delete.mv_insert.re_work
     end
 
-    desc 'apaga', 'apaga movimentos no bigquery'
-    option :k, banner: 'k1[,k2,...]', required: true,
-               desc: 'Keys movimentos a apagar'
-    # apaga movimentos no bigquery
-    def apaga
-      Big.new(k: options[:k]).mv_apaga
+    desc 'criact', 'cria contrato arrendamento'
+    option :c, banner: 'CONTRATO', required: true, desc: 'Identificador contrato arrendamento'
+    option :t, type: :boolean, default: true,      desc: 'cria todas as rendas?'
+    option :d, banner: 'DATA', default: '',        desc: 'data contrato arrendamento'
+    # cria contrato arrendamento
+    def criact
+      Big.new(c: options[:c], t: options[:t], d: options[:d]).ct_cria
     end
 
-    desc 'load', 'carrega dados da folha calculo no bigquery'
-    option :d, banner: 'DIR', default: "/home/#{ID}/Downloads",
-               desc: 'Onde procurar folhas calculo'
-    option :v, banner: 'DATA', default: '',
-               desc: 'data valor para movimentos a carregar'
-    option :g, banner: 'TAG', default: '',
-               desc: 'classificacao para movimentos a carregar'
-    option :s, type: :boolean, default: false,
-               desc: 'apaga linha similar no bigquery'
-    option :e, type: :boolean, default: false,
-               desc: 'apaga linha igual no bigquery'
-    option :m, type: :boolean, default: false,
-               desc: 'apaga linhas existencia multipla no bigquery'
+    desc 'apagact', 'apaga contrato arrendamento'
+    option :c, banner: 'CONTRATO', required: true, desc: 'Identificador contrato arrendamento'
+    option :t, type: :boolean, default: false,     desc: 'apaga todas as rendas?'
+    # apaga contrato arrendamento
+    def apagact
+      Big.new(c: options[:c], t: options[:t]).ct_apaga
+    end
+
+    desc 'recriact', 'atualiza rendas de contrato arrendamento'
+    option :c, banner: 'CONTRATO', required: true, desc: 'Identificador contrato arrendamento'
+    option :t, type: :boolean, default: false,     desc: 'apaga todas as rendas?'
+    option :d, banner: 'DATA', default: '',        desc: 'data contrato arrendamento'
+    # atualiza rendas de contrato arrendamento
+    def recriact
+      Big.new(c: options[:c], t: options[:t]).ct_apaga
+      Big.new(c: options[:c], t: true, d: options[:d]).ct_cria
+    end
+
+    desc 'recriare', 'atualiza rendas dos contratos ativos'
+    option :t, type: :boolean, default: false, desc: 'atualiza todas as rendas?'
+    # atualiza rendas dos contratos ativos
+    def recriare
+      Big.new(t: options[:t]).re_atualiza
+    end
+
+    desc 'load', 'carrega dados da folha calculo'
+    option :s, type: :boolean, default: false, desc: 'apaga movimento similar'
+    option :e, type: :boolean, default: false, desc: 'apaga movimento igual'
+    option :v, banner: 'DATA', default: '',    desc: 'data valor para movimentos a carregar'
+    option :g, banner: 'TAG', default: '',     desc: 'classificacao para movimentos a carregar'
     # carrega folha calculo
     def load
-      Dir.glob("#{options[:d]}/*.xlsx").sort.each do |f|
-        Big::Folha.new(f, load_ops).processa_folha
+      Dir.glob("#{DR}/*.xlsx").sort.each do |f|
+        Big::Folha.new(load_opc.merge(f: f)).processa_xls
       end
     end
 
     desc 'show', 'mostra dados da folha calculo'
-    option :d, banner: 'DIR', default: "/home/#{ID}/Downloads",
-               desc: 'Onde procurar folhas calculo'
     # mostra folha calculo
     def show
-      Dir.glob("#{options[:d]}/*.xlsx").sort.each do |f|
-        Big::Folha.new(f).processa_folha
+      Dir.glob("#{DR}/*.xlsx").sort.each do |f|
+        Big::Folha.new(f: f).processa_xls
       end
-    end
-
-    desc 'criare', 'cria contrato arrendamento/rendas no bigquery'
-    option :c, banner: 'CONTRATO', required: true,
-               desc: 'Identificador contrato arrendamento a criar'
-    option :t, type: :boolean, default: true,
-               desc: 'cria todas as rendas?'
-    option :v, banner: 'DATA', default: '',
-               desc: 'data contrato arrendamento a criar'
-    # cria contrato arrendamento/rendas no bigquery
-    def criare
-      Big::Contrato.new(options[:c], { t: options[:t], v: options[:v] }).re_cria
-    end
-
-    desc 'apagare', 'apaga contrato arrendamento/rendas no bigquery'
-    option :c, banner: 'CONTRATO', required: true,
-               desc: 'Identificador contrato arrendamento a apagar'
-    option :t, type: :boolean, default: false,
-               desc: 'apaga todas as rendas?'
-    # apaga contrato arrendamento/rendas no bigquery
-    def apagare
-      Big::Contrato.new(options[:c], { t: options[:t], v: '' }).re_apaga
     end
 
     no_commands do
-      # @return [Hash] opcoes trabalho com linhas para load
-      def load_ops
-        { s: options[:s], e: options[:e], m: options[:m], i: true,
-          v: options[:v], g: options[:g] }
+      # @return [Hash] opcoes trabalho com movimentos para load
+      def load_opc
+        { s: options[:s], e: options[:e], i: true, v: options[:v], g: options[:g] }
       end
     end
 
-    default_task :rendas
+    default_task :show
   end
 end

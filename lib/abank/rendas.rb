@@ -1,95 +1,121 @@
 # frozen_string_literal: true
 
-# class Big::Renda
-class Abank::Big::Contrato::Rendas < Abank::Big::Contrato
-  attr_reader :ren
+# @see Abank::Big
+class Abank::Big
+  # @return [Integer] ano renda em tratamento
+  attr_reader :reano
 
-  # @return [Integer] ano renda
-  attr_reader :ran
-  # @return [Integer] mes renda
-  attr_reader :rcn
+  # @return [Integer] mes renda em tratamento
+  attr_reader :repos
+
   # @return [Float] valor renda mensal
-  attr_reader :rru
+  attr_reader :revre
 
-  # @return [Integer] total de movimentos novos
-  attr_reader :mcn
+  # @return [String] rendas a inserir (values.re)
+  attr_reader :revls
+
   # @return [Integer] movimento em tratamento
-  attr_reader :mpn
-  # @return [Date] data lancamento movimento em tratamento
-  attr_reader :mdl
-  # @return [Float] valor movimento em tratamento
-  attr_reader :mvl
+  attr_reader :mvpos
 
-  # @return [Date] data contrato arrendamento
-  # {:mv=>[{:dl=>#<Date: 2020-03-02>, :vl=>0.3e2},...]
-  # ,:ct=>"r03000"
-  # ,:dc=>#<Date: 2020-03-01>
-  # ,:ano=>2020
-  # ,:cnt=>0
-  # ,:dl=>#<Date: 2020-03-01>}
-  def initialize(ren)
-    p ['Rendas', ren]
-    @ren = ren
-    super(ren[:ct])
+  # @return [Date] data lancamento movimento em tratamento
+  attr_reader :mvdlm
+
+  # @return [Float] valor movimento em tratamento
+  attr_reader :mvvlm
+
+  # (see CLI#recriare)
+  def re_atualiza
+    # obtem contratos ativos
+    @ctlct = sel('SELECT ct from hernanilr.ab.re group by 1')
+
+    # [re]cria rendas [novas|todas]
+    lr_apaga.cm_cria.vr_cria.re_insert
   end
 
-  # @param [Hash] con dados contrato & lista movimentos novos
-  # @return [Array<Hash>] lista rendas novas para criar
-  def rendas
-    vars_re
-    vars_mv
+  # cria rendas associadas a lista ids contratos arrendamento
+  def re_work
+    bqnrs.zero? || ctlct.count.positive? ? cm_cria.vr_cria.re_insert : re_atualiza
+  end
+
+  # obtem rendas a inserir (values.re)
+  #
+  # @return [Big] acesso a base dados abank no bigquery
+  def vr_cria
+    @revls = ctlcm.map { |c| rendas_novas(c) }.flatten(1).join(',')
+    self
+  end
+
+  # insere rendas no bigquery
+  def re_insert
+    if revls.size.zero?
+      puts 'NAO EXISTEM RENDAS NOVAS'
+    else
+      dml('insert hernanilr.ab.re VALUES' + revls)
+      puts "RENDAS #{str_lc('')} CRIADAS " + bqnrs.to_s
+    end
+  end
+
+  # @param [Hash] cmv dados contrato arrendamento (inclui lista movimentos novos)
+  # @return [Array<String>] lista rendas novas dum contrato arrendamento (values.re)
+  def rendas_novas(cmv)
+    return [] unless cmv[:mv].count.positive?
+
+    vars_re(cmv)
     r = []
-    while mvl >= rru && mpn < mcn
-      r << nova_re
-      proximo_mv
+    while mvvlm >= revre && mvpos < cmv[:mv].count
+      r << nova_re(cmv)
+      proximo_mv(cmv)
     end
     r
   end
 
-  # @param (see rendas)
-  def vars_mv
-    @mpn = 0
-    @mcn = ren[:mv].count
-    vars_dados_mv
+  # inicializa variaveis para processar rendas do contrato arrendamento
+  # @param (see rendas_novas)
+  def vars_re(cmv)
+    @reano = cmv[:ano]
+    @repos = cmv[:cnt]
+    @revre = Float(cmv[:ct][/\d+/]) / 100
+    @mvpos = 0
+    vars_re_mv(cmv)
   end
 
-  # @param (see rendas)
-  def vars_dados_mv
-    @mdl = ren[:mv][mpn][:dl]
-    @mvl = ren[:mv][mpn][:vl]
+  # inicializa variaveis para processar movimentos associados ao contrato arrendamento
+  # @param (see rendas_novas)
+  def vars_re_mv(cmv)
+    @mvdlm = cmv[:mv][mvpos][:dl]
+    @mvvlm = cmv[:mv][mvpos][:vl]
   end
 
-  # @param (see rendas)
-  def vars_re
-    @ran = ren[:ano]
-    @rcn = ren[:cnt]
-    @rru = Float(ren[:ct][/\d+/]) / 100
-  end
-
-  # @return [Array] lista dados da renda nova
-  def nova_re
-    if rcn == 12
-      @rcn = 1
-      @ran += 1
+  # @param (see rendas_novas)
+  # @return [String] renda formatada (values.re)
+  def nova_re(cmv)
+    # inicializa proxima renda
+    if repos == 12
+      @repos = 1
+      @reano += 1
     else
-      @rcn += 1
+      @repos += 1
     end
-    # [rct, ran, rcn, mdl, mdl.mjd - vencimento.mjd]
-    "('#{rct}',#{ran},#{rcn},'#{mdl.strftime(DF)}',#{dias})"
+    "('#{cmv[:ct]}',#{reano},#{repos},'#{mvdlm.strftime(DF)}',#{dias(cmv)})"
   end
 
-  def dias
-    mdl.mjd - (Date.new(ran, rcn, 1) >> (ren[:dc].month - 1)).mjd
+  # @param (see rendas_novas)
+  # @return [Integer] dias atraso no pagamento da renda
+  def dias(cmv)
+    mvdlm.mjd - (Date.new(reano, repos, 1) >> (cmv[:dc].month - 1)).mjd
   end
 
-  # @param (see rendas)
-  def proximo_mv
-    @mvl -= rru
-    return unless mvl < rru
+  # inicializa variaveis para processar proximo movimento
+  # @param (see rendas_novas)
+  def proximo_mv(cmv)
+    # valor renda paga retirado do valor do movimento
+    @mvvlm -= revre
+    return unless mvvlm < revre
 
-    @mpn += 1
-    return unless mpn < mcn
+    # avanca na lista de movimentos
+    @mvpos += 1
+    return unless mvpos < cmv[:mv].count
 
-    vars_dados_mv
+    vars_re_mv(cmv)
   end
 end

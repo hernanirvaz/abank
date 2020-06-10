@@ -1,80 +1,107 @@
 # frozen_string_literal: true
 
-# class Big::Contrato
-class Abank::Big::Contrato < Abank::Big
-  # @return [String] identificador contrato arrendamento
-  attr_reader :rct
+# acesso a base dados abank no bigquery
+class Abank::Big
+  # @return [String] id contrato arrendamento
+  attr_reader :ctide
 
-  # {:ct=>"r03000"}
-  def initialize(con, ops = { t: false, v: '' })
-    p ['Contrato', con, ops]
-    @rct = con
-    super(ops)
-  end
+  # @return [Array<Hash>] lista ids contratos arrendamento
+  # @example
+  #   [{ ct: 'r03000' }, ...]
+  attr_reader :ctlct
 
-  # (see CLI#cria)
-  def re_cria
+  # @return [Array<Hash>] lista dados contrato arrendamento (inclui lista movimentos novos)
+  # @example
+  #   [{ct: 'r03000', dc: '2020-03-01', ano: 2020, cnt: 0, dl: '2020-03-01', mv: [{dl: '2020-03-02', vl: 30}, ...]  }]
+  attr_reader :ctlcm
+
+  # (see CLI#criact)
+  def ct_cria
     if existe_contrato?
-      i = 0
-      puts 'JA EXISTE CONTRATO'
+      @bqnrs = 1
+      puts 'CONTRATO JA EXISTE'
     else
-      i = dml('insert into hernanilr.ab.re ' + sql_contrato_mv)
-      puts i.zero? ? 'NAO EXISTE CONTRATO' : "CONTRATO #{rct} INSERIDO"
+      dml('insert into hernanilr.ab.re ' + sql_contrato_mv)
+      puts "CONTRATO #{ctide} " + (bqnrs.zero? ? 'NAO EXISTE' : 'INSERIDO')
     end
-    return unless i.positive? && opl[:t]
+    return unless existem_rendas?
 
-    re_atualiza
+    # processa rendas associadas ao contrato arrendamento
+    cm_cria.vr_cria.re_insert
   end
 
-  # (see CLI#apagare)
-  def re_apaga
-    puts "RENDAS #{rct} APAGADAS " + dml(sql_apaga_re).to_s
+  # (see CLI#apagact)
+  def ct_apaga
+    @ctlct = [{ ct: ctide }]
+    lc_apaga
   end
 
-  # @return [Hash] dados contrato & movimentos novos
-  def dados_contrato
-    c = sel(sql_last_re).first
-    sel(sql_novo_mv(c[:dl]))
-    return unless resultados.count.positive?
+  # apaga rendas da lista de contrato arrendamento
+  #
+  # @return [Big] acesso a base dados abank no bigquery
+  def lr_apaga
+    return self unless opcao[:t] && ctlct.count.positive?
 
-    { mv: resultados }.merge(c)
+    # para nao apagar contrato arrendamento - somente as rendas
+    @opcao[:t] = false
+
+    lc_apaga
+    self
   end
 
-  def sql_last_re
-    'select ct,DATE_SUB(DATE_SUB(dl,INTERVAL dias DAY)' \
-          ',INTERVAL IF(cnt=0,0,cnt-1) MONTH) as dc,ano,cnt,dl ' \
-      "from hernanilr.ab.re where ct='#{rct}' " \
-    'order by ano desc,cnt desc limit 1'
+  # apaga rendas da lista de contratos arrendamento
+  def lc_apaga
+    dml("delete from hernanilr.ab.re where ct in(#{str_lc})#{opcao[:t] ? '' : ' and cnt>0'}")
+    puts "RENDAS #{str_lc('')} APAGADAS " + bqnrs.to_s
   end
 
-  def sql_novo_mv(mdl)
-    "select dl,vl from hernanilr.ab.mv where ct='#{rct}' " \
-       "and dl>='#{(mdl + 1).strftime(DF)}' order by dl,dv"
+  # @return [String] texto formatado que representa lista de contratos arrendamento
+  def str_lc(sep = "'")
+    ctlct.map { |c| sep + c[:ct] + sep }.join(',')
   end
 
+  # optem lista dados contrato arrendamento (inclui lista movimentos novos)
+  #
+  # @return [Big] acesso a base dados abank no bigquery
+  def cm_cria
+    @ctlcm = []
+    ctlct.each do |c|
+      @ctide = c[:ct]
+      sel(sql_last_re)
+      @ctlcm << bqres[0].merge({ mv: sel(sql_novo_mv(bqres[0][:dl])) })
+    end
+    self
+  end
+
+  # @return [Boolean] existem rendas para processar sim/nao?
+  def existem_rendas?
+    @ctlct = [{ ct: ctide }]
+    bqnrs.positive? && opcao[:t]
+  end
+
+  # @return [Boolean] contrato arrendamento ja existe sim/nao?
   def existe_contrato?
-    sel(sql_contrato_re).count.positive?
+    sel("select ct from hernanilr.ab.re where ct='#{ctide}' and cnt=0").count.positive?
   end
 
-  def sql_contrato_re
-    "select * from hernanilr.ab.re where ct='#{rct}' and cnt=0"
+  # @return [String] sql para obter ultima renda do contrato arrendamento
+  def sql_last_re
+    'select ct,DATE_SUB(DATE_SUB(dl,INTERVAL dias DAY),INTERVAL IF(cnt=0,0,cnt-1) MONTH) as dc,ano,cnt,dl ' \
+      "from hernanilr.ab.re where ct='#{ctide}' order by ano desc,cnt desc limit 1"
   end
 
-  # @return [String] sql obtem dados inicio contrato arrendamento
+  # @return [String] sql para obter movimentos novos (depois da ultima renda do contrato arrendamento)
+  def sql_novo_mv(mdl)
+    "select dl,vl from hernanilr.ab.mv where ct='#{ctide}' and dl>='#{(mdl + 1).strftime(DF)}' order by dl,dv"
+  end
+
+  # @return [String] sql para obter dados do inicio contrato arrendamento
   def sql_contrato_mv
-    if opl[:v].size.zero?
-      'select ct,EXTRACT(YEAR FROM DATE_TRUNC(dl,MONTH)) as ano,0 as cnt' \
-                                 ',DATE_TRUNC(dl,MONTH) as dl,0 dias ' \
-        "from hernanilr.ab.mv where ct='#{rct}' order by dl limit 1"
+    if opcao[:d].size.zero?
+      'select ct,EXTRACT(YEAR FROM DATE_TRUNC(dl,MONTH)) as ano,0 as cnt,DATE_TRUNC(dl,MONTH) as dl,0 dias ' \
+        "from hernanilr.ab.mv where ct='#{ctide}' order by dl limit 1"
     else
-      "select '#{rct}' as ct" \
-            ",EXTRACT(YEAR FROM DATE '#{opl[:v]}') as ano,0 as cnt" \
-                              ",DATE '#{opl[:v]}' as dl,0 dias "
+      "select '#{ctide}' as ct,EXTRACT(YEAR FROM DATE '#{opcao[:d]}') as ano,0 as cnt,DATE '#{opcao[:d]}' as dl,0 dias"
     end
-  end
-
-  def sql_apaga_re
-    "delete from hernanilr.ab.re where ct='#{rct}'" +
-      (opl[:t] ? '' : ' and cnt>0')
   end
 end
