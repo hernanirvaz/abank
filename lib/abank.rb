@@ -3,8 +3,8 @@
 require 'thor'
 require 'abank/big'
 require 'abank/contrato'
-require 'abank/folha'
 require 'abank/rendas'
+require 'abank/folha'
 require 'abank/version'
 
 # @author Hernani Rodrigues Vaz
@@ -70,7 +70,7 @@ module Abank
     # carrega folha calculo
     def load
       Dir.glob("#{DR}/*.xlsx").sort.each do |f|
-        Big::Folha.new(load_opc.merge(f: f)).processa_xls
+        Folha.new(load_opc.merge(f: f)).processa_xls
       end
     end
 
@@ -78,7 +78,7 @@ module Abank
     # mostra folha calculo
     def show
       Dir.glob("#{DR}/*.xlsx").sort.each do |f|
-        Big::Folha.new(f: f).processa_xls
+        Folha.new(f: f).processa_xls
       end
     end
 

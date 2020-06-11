@@ -2,9 +2,6 @@ AllCops:
   TargetRubyVersion: 2.6
   EnabledByDefault: true
 
-Style/ClassAndModuleChildren:
-  EnforcedStyle: compact
-
 Style/Copyright:
   Enabled: false
 
