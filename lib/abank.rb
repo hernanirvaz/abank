@@ -62,15 +62,15 @@ module Abank
       Big.new(t: options[:t]).re_atualiza
     end
 
-    desc 'load', 'carrega dados da folha calculo'
+    desc 'work', 'carrega/apaga dados da folha calculo'
     option :s, type: :boolean, default: false, desc: 'apaga movimento similar'
     option :e, type: :boolean, default: false, desc: 'apaga movimento igual'
     option :v, banner: 'DATA', default: '',    desc: 'data valor para movimentos a carregar'
     option :g, banner: 'TAG', default: '',     desc: 'classificacao para movimentos a carregar'
-    # carrega folha calculo
-    def load
+    # carrega/apaga dados da folha calculo
+    def work
       Dir.glob("#{DR}/*.xlsx").sort.each do |f|
-        Folha.new(load_opc.merge(f: f)).processa_xls
+        Folha.new(work_opc.merge(f: f)).processa_xls
       end
     end
 
@@ -83,8 +83,8 @@ module Abank
     end
 
     no_commands do
-      # @return [Hash] opcoes trabalho com movimentos para load
-      def load_opc
+      # @return [Hash] opcoes trabalho com movimentos para work
+      def work_opc
         { s: options[:s], e: options[:e], i: true, v: options[:v], g: options[:g] }
       end
     end
