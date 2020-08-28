@@ -1,6 +1,6 @@
 # frozen_string_literal: true
 
-require 'roo'
+require('roo')
 
 module Abank
   # acesso a folha calculo & base dados abank no bigquery
@@ -42,7 +42,7 @@ module Abank
       n = 0
       folha.sheet(0).parse(header_search: ['Data Lanc.', 'Data Valor', 'Descrição', 'Valor']) do |r|
         n += 1
-        puts n == 1 ? "\n" + folha.info : processa_linha(r)
+        puts n == 1 ? "\n#{folha.info}" : processa_linha(r)
       end
       return unless opcao[:i]
 
@@ -60,7 +60,7 @@ module Abank
       #  array.count = 0 ==> pode carregar esta linha
       #  array.count = 1 ==> mais testes necessarios
       #  array.count > 1 ==> nao pode carregar esta linha
-      sel(sql_existe_mv, [{}, {}])
+      sql(sql_existe_mv, [{}, {}])
       if linha_naoexiste? then linha_base + values_mv
       elsif linha_existe? then linha_existe
       elsif linha_simila? then linha_similar
@@ -85,18 +85,18 @@ module Abank
     # @return [String] texto linha existente formatada para display
     def linha_existe
       add_kys if opcao[:e]
-      linha_base + ' EXIS ' + format('%<v1>20d', v1: bqres.first[:ky])
+      "#{linha_base} EXIS #{format('%<v1>20d', v1: bqres.first[:ky])}"
     end
 
     # @return [String] texto linha similar formatada para display
     def linha_similar
       add_kys if opcao[:s]
-      linha_base + ' SIMI ' + format('%<v1>-20.20s', v1: bqres.first[:ds].strip)
+      "#{linha_base} SIMI #{format('%<v1>-20.20s', v1: bqres.first[:ds].strip)}"
     end
 
     # @return [String] texto linha existencia multipla formatada para display
     def linha_multiplas
-      linha_base + ' MULT(' + bqres.count.to_s + ')'
+      "#{linha_base} MULT(#{bqres.count})"
     end
 
     # obtem chaves movimento (keysin.mv) para apagar
@@ -121,7 +121,7 @@ module Abank
 
     # @return [String] sql para movimentos no bigquery
     def sql_existe_mv
-      "select *,#{ky_mv} as ky from hernanilr.ab.mv " \
+      "select *,#{ky_mv} as ky from #{BD}.mv " \
        "where nc=#{conta} and dl='#{rowfc[0].strftime(DF)}' and vl=#{rowfc[3]}"
     end
 
@@ -145,7 +145,7 @@ module Abank
 
     # @return [String] classificacao do movimento (null --> classificacao automatica)
     def ctc
-      opcao[:g].size.zero? ? 'null' : ("'" + opcao[:g] + "'")
+      opcao[:g].size.zero? ? 'null' : "'#{opcao[:g]}'"
     end
 
     # @return [String] tipo movimento c[redito] ou d[ebito]

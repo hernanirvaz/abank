@@ -27,7 +27,7 @@ module Abank
     # (see CLI#recriare)
     def re_atualiza
       # obtem contratos ativos
-      @ctlct = sel('SELECT ct from hernanilr.ab.re group by 1')
+      @ctlct = sql("SELECT ct from #{BD}.re group by 1")
 
       # [re]cria rendas [novas|todas]
       lr_apaga.cm_cria.vr_cria.re_insert
@@ -49,10 +49,10 @@ module Abank
     # insere rendas no bigquery
     def re_insert
       if revls.size.zero?
-        puts 'NAO EXISTEM RENDAS NOVAS'
+        puts('NAO EXISTEM RENDAS NOVAS')
       else
-        dml('insert hernanilr.ab.re VALUES' + revls)
-        puts "RENDAS #{str_lc('')} CRIADAS " + bqnrs.to_s
+        dml("insert #{BD}.re VALUES#{revls}")
+        puts("RENDAS #{str_lc('')} CRIADAS " + bqnrs.to_s)
       end
     end
 

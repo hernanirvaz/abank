@@ -1,6 +1,6 @@
 # frozen_string_literal: true
 
-require 'google/cloud/bigquery'
+require('google/cloud/bigquery')
 
 module Abank
   # @see Big
@@ -42,16 +42,13 @@ module Abank
       @mvvls = ''
       @mvkys = opc.fetch(:k, '')
       @ctide = opc.fetch(:c, '')
-      # p ['B', opcao]
       opcao
     end
 
     # (see CLI#tag)
     def mv_classifica
-      dml('update hernanilr.ab.mv set mv.ct=tt.nct ' \
-            'from (select * from hernanilr.ab.cl) as tt ' \
-           "where #{ky_mv}=tt.ky")
-      puts 'MOVIMENTOS CLASSIFICADOS ' + bqnrs.to_s
+      dml("update #{BD}.mv set mv.ct=tt.nct from (select * from #{BD}.cl) as tt where #{ky_mv}=tt.ky")
+      puts("MOVIMENTOS CLASSIFICADOS #{bqnrs}")
     end
 
     # apaga movimentos & suas rendas associadas no bigquery
@@ -61,7 +58,7 @@ module Abank
       vars_mv_work
       if mvkys.size.positive?
         # obtem lista contratos arrendamento associados aos movimentos a apagar
-        @ctlct = sel("select ct from hernanilr.ab.mv where #{ky_mv} in(#{mvkys}) and substr(ct,1,1)='r' group by 1")
+        @ctlct = sql("select ct from #{BD}.mv where #{ky_mv} in(#{mvkys}) and substr(ct,1,1)='r' group by 1")
 
         # apaga rendas associadas e depois movimentos
         @opcao[:t] = true
@@ -69,6 +66,7 @@ module Abank
 
         # para obrigar re_work a trabalhar com lista contratos (ctlct)
         @bqnrs = 0
+      else
       end
       self
     end
@@ -78,9 +76,10 @@ module Abank
     # @return [Big] acesso a base dados abank no bigquery
     def mv_insert
       if mvvls.size.positive?
-        dml('insert hernanilr.ab.mv VALUES' + mvvls)
-        puts 'MOVIMENTOS INSERIDOS ' + bqnrs.to_s
+        dml("insert #{BD}.mv VALUES#{mvvls}")
+        puts("MOVIMENTOS INSERIDOS #{bqnrs}")
         mv_classifica if bqnrs.positive?
+      else
       end
       self
     end
@@ -95,8 +94,8 @@ module Abank
 
     # apaga movimentos no bigquery
     def mv_delete_dml
-      dml("delete from hernanilr.ab.mv where #{ky_mv} in(#{mvkys})")
-      puts 'MOVIMENTOS APAGADOS ' + bqnrs.to_s
+      dml("delete from #{BD}.mv where #{ky_mv} in(#{mvkys})")
+      puts("MOVIMENTOS APAGADOS #{bqnrs}")
     end
 
     # @return [String] expressao sql da chave de movimentos
@@ -106,13 +105,13 @@ module Abank
 
     # cria job bigquery & verifica execucao
     #
-    # @param [String] sql comando a executar
+    # @param [String] cmd comando a executar
     # @return [Boolean] job ok?
-    def job?(sql)
-      # p sql
-      @bqjob = bqapi.query_job(sql)
+    def job?(cmd)
+      # p cmd
+      @bqjob = bqapi.query_job(cmd)
       @bqjob.wait_until_done!
-      puts @bqjob.error['message'] if @bqjob.failed?
+      puts(@bqjob.error['message']) if @bqjob.failed?
       @bqjob.failed?
     end
 
@@ -121,16 +120,16 @@ module Abank
     # @param (see job?)
     # @param [Array] erro quando da erro no bigquery
     # @return [Google::Cloud::Bigquery::Data] resultado do sql
-    def sel(sql, erro = [])
-      @bqres = job?(sql) ? erro : bqjob.data
+    def sql(cmd, erro = [])
+      @bqres = job?(cmd) ? erro : bqjob.data
     end
 
     # executa Data Manipulation Language (DML) no bigquery
     #
     # @param (see job?)
     # @return [Integer] numero rows afetadas pelo dml
-    def dml(sql)
-      @bqnrs = job?(sql) ? 0 : bqjob.num_dml_affected_rows
+    def dml(cmd)
+      @bqnrs = job?(cmd) ? 0 : bqjob.num_dml_affected_rows
     end
   end
 end

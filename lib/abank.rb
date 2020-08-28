@@ -1,15 +1,16 @@
 # frozen_string_literal: true
 
-require 'thor'
-require 'abank/big'
-require 'abank/contrato'
-require 'abank/rendas'
-require 'abank/folha'
-require 'abank/version'
+require('thor')
+require('abank/big')
+require('abank/contrato')
+require('abank/rendas')
+require('abank/folha')
+require('abank/version')
 
 # @author Hernani Rodrigues Vaz
 module Abank
   DR = "/home/#{`whoami`.chomp}/Downloads"
+  BD = 'hernanilr.ab'
 
   class Error < StandardError; end
 

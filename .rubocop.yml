@@ -1,30 +1,15 @@
 AllCops:
-  TargetRubyVersion: 2.6
+  TargetRubyVersion: 2.7
   EnabledByDefault: true
 
 Style/Copyright:
-  Enabled: false
+    Enabled: false
 
-Style/DocumentationMethod:
-  Enabled: false
-
-Style/MethodCallWithArgsParentheses:
-  Enabled: false
+Lint/ConstantResolution:
+    Enabled: false
 
 Style/ConstantVisibility:
-  Enabled: false
+    Enabled: false
 
-Layout/MultilineMethodArgumentLineBreaks:
-  Enabled: false
-
-Layout/MultilineHashKeyLineBreaks:
-  Enabled: false
-
-Layout/FirstMethodParameterLineBreak:
-  Enabled: false
-
-Layout/FirstHashElementLineBreak:
-  Enabled: false
-
-Style/MissingElse:
-  Enabled: false
+Style/EmptyElse:
+    EnforcedStyle: nil
