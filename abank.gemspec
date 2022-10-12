@@ -13,7 +13,7 @@ Gem::Specification.new do |spec|
   spec.description = "#{spec.summary} Permite apagar/recriar movimentos/rendas ja no bigquery. "\
                      ' Permite ainda classificar movimentos no bigquery.'
 
-  spec.required_ruby_version    = Gem::Requirement.new('~> 2.7')
+  spec.required_ruby_version    = Gem::Requirement.new('~> 3.1')
   spec.metadata['homepage_uri'] = spec.homepage
   spec.metadata['yard.run']     = 'yard'
 
