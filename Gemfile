@@ -6,3 +6,4 @@ source 'https://rubygems.org'
 gemspec
 
 gem 'rake', '~> 12.0'
+gem 'nokogiri', '~> 1.18.1', platforms: [:ruby], require: false
