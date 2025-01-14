@@ -1,17 +1,13 @@
 # frozen_string_literal: true
 
 require('thor')
-require('abank/big1')
-require('abank/big2')
-require('abank/big3')
-require('abank/folha1')
-require('abank/folha2')
+require('abank/big')
+require('abank/folha')
 require('abank/version')
 
 # @author Hernani Rodrigues Vaz
 module Abank
   DR = "/home/#{`whoami`.chomp}/Downloads"
-  BD = 'hernanilr.ab'
 
   # CLI para carregar folhas calculo comuns no bigquery
   class CLI < Thor

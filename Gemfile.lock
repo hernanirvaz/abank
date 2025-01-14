@@ -1,7 +1,7 @@
 PATH
   remote: .
   specs:
-    abank (0.4.4)
+    abank (0.4.5)
       google-cloud-bigquery
       roo
       thor
