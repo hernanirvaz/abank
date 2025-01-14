@@ -151,9 +151,9 @@ module Abank
 
     # @return [String] sql para obter ultima renda do contrato arrendamento
     def sql_last_re
-      'select ct,DATE_SUB(DATE_SUB(dl,INTERVAL dias DAY),INTERVAL IF(cnt=0,0,cnt-1) MONTH) dc,ano,cnt,dl'\
-            ',CAST(REGEXP_EXTRACT(ct,r"\d+") as numeric)/100 vr '\
-        "from #{BD}.re where ct='#{opcao[:c]}' order by ano desc,cnt desc limit 1"
+      'select r1.ct,r0.dl dc,r1.ano,r1.cnt,r1.dl,CAST(REGEXP_EXTRACT(r1.ct,r"\d+") as numeric)/100 vr '\
+        "from #{BD}.re r1 join hernanilr.ab.re r0 on (r0.ct=r1.ct and r0.cnt=0 and r1.cnt>0)"\
+      " where r1.ct='#{opcao[:c]}' order by ano desc,cnt desc limit 1"
     end
 
     # @return [String] sql para obter movimentos novos (depois da ultima renda do contrato arrendamento)
