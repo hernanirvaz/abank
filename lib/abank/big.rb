@@ -119,6 +119,7 @@ module Abank
       ctlct.map! do |ctr|
         opcao[:c] = ctr[:ct]
         lre = sql(sql_last_re)[0]
+        lre[:dl] += -1 if lre[:cnt] == 0
         ctr.merge(lre, mv: sql(sql_novo_mv(lre[:dl])))
       end
       self
@@ -152,13 +153,13 @@ module Abank
     # @return [String] sql para obter ultima renda do contrato arrendamento
     def sql_last_re
       'select r1.ct,r0.dl dc,r1.ano,r1.cnt,r1.dl,CAST(REGEXP_EXTRACT(r1.ct,r"\d+") as numeric)/100 vr '\
-        "from #{BD}.re r1 join hernanilr.ab.re r0 on (r0.ct=r1.ct and r0.cnt=0 and r1.cnt>0)"\
-      " where r1.ct='#{opcao[:c]}' order by ano desc,cnt desc limit 1"
+        "from #{BD}.re r1 join hernanilr.ab.re r0 on (r0.ct=r1.ct and r0.cnt=0)"\
+      " where r1.ct='#{opcao[:c]}' order by r1.ano desc,r1.cnt desc limit 1"
     end
 
     # @return [String] sql para obter movimentos novos (depois da ultima renda do contrato arrendamento)
     def sql_novo_mv(mdl)
-      "select dl,vl from #{BD}.mv where ct='#{opcao[:c]}' and dl>='#{(mdl + 1).strftime(DF)}' order by dl,dv"
+      "select dl,vl from #{BD}.mvgem where ct='#{opcao[:c]}' and dl>='#{(mdl + 1).strftime(DF)}' order by dl,dv"
     end
 
     # @return [String] sql para obter dados do inicio contrato arrendamento
@@ -225,7 +226,7 @@ module Abank
     def re_proximos_dados
       # valor renda paga retirada do movimento
       re_atual_mv[:vl] -= re_atual[:vr]
-      dre = cnt.zero? ? Date.new(ano, 1, 1) : Date.new(ano, cnt, 1) >> 1
+      dre = cnt.zero? ? Date.new(re_atual[:dc].year, re_atual[:dc].month, 1) : Date.new(ano, cnt, 1) >> 1
       re_atual.merge!(ano: dre.year, cnt: dre.month)
     end
 
@@ -262,7 +263,7 @@ module Abank
 
     # @return [Integer] dias atraso/antecipo neste pagamento renda
     def dias
-      re_atual_mv[:dl].mjd - (Date.new(ano, cnt, 1) >> (re_atual[:dc].month - 1)).mjd
+      re_atual_mv[:dl].mjd - Date.new(ano, cnt, 1).mjd
     end
 
     # @param [String] cmd comando a executar

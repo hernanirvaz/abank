@@ -1,7 +1,7 @@
 PATH
   remote: .
   specs:
-    abank (0.4.6)
+    abank (0.4.7)
       google-cloud-bigquery
       roo
       thor
@@ -57,7 +57,7 @@ GEM
       net-http (>= 0.5.0)
     google-apis-bigquery_v2 (0.83.0)
       google-apis-core (>= 0.15.0, < 2.a)
-    google-apis-core (0.15.1)
+    google-apis-core (0.16.0)
       addressable (~> 2.5, >= 2.5.1)
       googleauth (~> 1.9)
       httpclient (>= 2.8.3, < 3.a)
