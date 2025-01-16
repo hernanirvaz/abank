@@ -154,7 +154,7 @@ module Abank
 
     # @return [String] sql para obter movimentos novos (depois da ultima renda do contrato arrendamento)
     def sql_novo_mv(mdl)
-      "select dl,vl from #{BD}.mvgem where ct='#{opcao[:c]}' and dl>='#{(mdl + 1).strftime(DF)}' order by dl,dv"
+      "select * from #{BD}.mvgem where ct='#{opcao[:c]}' and dl>='#{(mdl + 1).strftime(DF)}' order by 1,2"
     end
 
     # @return [String] sql para obter dados do inicio contrato arrendamento
