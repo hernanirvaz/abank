@@ -53,10 +53,9 @@ module Abank
     end
 
     desc 'recriare', 'atualiza rendas dos contratos ativos'
-    option :t, type: :boolean, default: false, desc: 'atualiza todas as rendas?'
     # atualiza rendas dos contratos ativos
     def recriare
-      Big.new(options.transform_keys(&:to_sym)).re_atualiza
+      Big.new().re_atualiza
     end
 
     desc 'work', 'carrega/apaga dados da folha calculo'

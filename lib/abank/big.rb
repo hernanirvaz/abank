@@ -54,10 +54,8 @@ module Abank
       @ctlct = []
       unless mvkys.empty?
         # obtem lista contratos arrendamento associados aos movimentos a apagar
-        @ctlct = sql("select distinct ct from #{BD}.mv where #{BD}.ky(dl,dv,ds,vl,nc) in(#{mvkys}) and substr(ct,1,1)='r'")
+        @ctlct = sql("select distinct ct from #{BD}.gmc where #{BD}.ky(dl,dv,ds,vl,nc) in(#{mvkys})")
 
-        # apaga todas as rendas dos contratos arrendamento associados aos movimentos a apagar
-        opcao[:t] = true unless ctlct.empty?
         re_apaga.mv_delete_dml
       end
       self
@@ -71,9 +69,9 @@ module Abank
 
     # (see CLI#tag)
     def mv_classifica
-      dml("update #{BD}.mv set mv.ct=tt.nct from (select * from #{BD}.cl) as tt where #{BD}.ky(mv.dl,mv.dv,mv.ds,mv.vl,mv.nc)=tt.ky")
+      stp("call #{BD}.uct()")
       puts("MOVIMENTOS CLASSIFICADOS #{bqnrs}")
-      @ctlct = sql("select distinct ct from #{BD}.re") if bqnrs.positive?
+      @ctlct = sql("select ct from #{BD}.ca") if bqnrs.positive?
       self
     end
 
@@ -93,7 +91,7 @@ module Abank
     # @return [Boolean] contrato arrendamento ja existe sim/nao?
     def ct_existe?
       @ctlct = [{ ct: opcao[:c] }]
-      vaz = sql("select ct from #{BD}.re where ct in(#{str_lc}) and cnt=0").empty?
+      vaz = sql("select ct from #{BD}.ca where ct in(#{str_lc})").empty?
       unless vaz
         @bqnrs = 1
         puts('CONTRATO JA EXISTE')
@@ -147,14 +145,12 @@ module Abank
 
     # @return [String] sql para obter ultima renda do contrato arrendamento
     def sql_last_re
-      'select r1.ct,r0.dl dc,r1.ano,r1.cnt,r1.dl,CAST(REGEXP_EXTRACT(r1.ct,r"\d+") as numeric)/100 vr '\
-        "from #{BD}.re r1 join hernanilr.ab.re r0 on (r0.ct=r1.ct and r0.cnt=0)"\
-      " where r1.ct='#{opcao[:c]}' order by r1.ano desc,r1.cnt desc limit 1"
+      "select * from #{BD}.glr where ct='#{opcao[:c]}' order by ano desc,cnt desc limit 1"
     end
 
     # @return [String] sql para obter movimentos novos (depois da ultima renda do contrato arrendamento)
     def sql_novo_mv(mdl)
-      "select * from #{BD}.mvgem where ct='#{opcao[:c]}' and dl>='#{(mdl + 1).strftime(DF)}' order by 1,2"
+      "select * from #{BD}.gmv where ct='#{opcao[:c]}' and dl>='#{(mdl + 1).strftime(DF)}' order by 1,2"
     end
 
     # @return [String] sql para obter dados do inicio contrato arrendamento
@@ -172,7 +168,7 @@ module Abank
     # (see CLI#recriare)
     def re_atualiza
       # [re]cria rendas novas/todas dos contratos ativos
-      @ctlct = sql("select distinct ct from #{BD}.re")
+      @ctlct = sql("select ct from #{BD}.ca")
       re_apaga.ct_dados.re_insert
     end
 
@@ -192,7 +188,7 @@ module Abank
     #
     # @return [Big] acesso a base dados abank no bigquery
     def re_apaga
-      return self if !opcao[:t] || ctlct.empty?
+      return self if ctlct.empty?
 
       # para nao apagar contrato arrendamento - somente as rendas
       opcao[:t] = false
@@ -290,6 +286,18 @@ module Abank
     def dml(cmd)
       # se job.failed? executa Integer(nil) => StandardError
       @bqnrs = Integer(job(cmd).num_dml_affected_rows)
+    rescue StandardError
+      @bqnrs = 0
+    end
+
+    # executa Stored Procedure (STP) with DML operations no bigquery
+    #
+    # @param (see job)
+    # @return [Integer] numero rows afetadas pelo STP
+    def stp(cmd)
+      # last command STP=SELECT @@row_count AS rows_affected;
+      # se job.failed? executa Integer(nil) => StandardError
+      @bqnrs = Integer(job(cmd).data.first[:rows_affected])
     rescue StandardError
       @bqnrs = 0
     end
