@@ -54,7 +54,7 @@ module Abank
       @ctlct = []
       unless mvkys.empty?
         # obtem lista contratos arrendamento associados aos movimentos a apagar
-        @ctlct = sql("select distinct ct from #{BD}.mv where #{ky_mv} in(#{mvkys}) and substr(ct,1,1)='r'")
+        @ctlct = sql("select distinct ct from #{BD}.mv where #{BD}.ky(dl,dv,ds,vl,nc) in(#{mvkys}) and substr(ct,1,1)='r'")
 
         # apaga todas as rendas dos contratos arrendamento associados aos movimentos a apagar
         opcao[:t] = true unless ctlct.empty?
@@ -65,21 +65,16 @@ module Abank
 
     # apaga movimentos no bigquery
     def mv_delete_dml
-      dml("delete from #{BD}.mv where #{ky_mv} in(#{mvkys})")
+      dml("delete from #{BD}.mv where #{BD}.ky(dl,dv,ds,vl,nc) in(#{mvkys})")
       puts("MOVIMENTOS APAGADOS #{bqnrs}")
     end
 
     # (see CLI#tag)
     def mv_classifica
-      dml("update #{BD}.mv set mv.ct=tt.nct from (select * from #{BD}.cl) as tt where #{ky_mv}=tt.ky")
+      dml("update #{BD}.mv set mv.ct=tt.nct from (select * from #{BD}.cl) as tt where #{BD}.ky(mv.dl,mv.dv,mv.ds,mv.vl,mv.nc)=tt.ky")
       puts("MOVIMENTOS CLASSIFICADOS #{bqnrs}")
       @ctlct = sql("select distinct ct from #{BD}.re") if bqnrs.positive?
       self
-    end
-
-    # @return [String] expressao sql da chave de movimentos
-    def ky_mv
-      'FARM_FINGERPRINT(CONCAT(CAST(mv.nc as STRING),mv.ds,CAST(mv.dl as STRING),CAST(mv.vl as STRING)))'
     end
 
     # (see CLI#criact)
