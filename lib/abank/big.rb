@@ -54,7 +54,7 @@ module Abank
       @ctlct = []
       unless mvkys.empty?
         # obtem lista contratos arrendamento associados aos movimentos a apagar
-        @ctlct = sql("select distinct ct from #{BD}.gmc where #{BD}.ky(dl,dv,ds,vl,nc) in(#{mvkys})")
+        @ctlct = sql("select distinct ct from #{BD}.gmr where #{BD}.ky(dl,dv,ds,vl,nc) in(#{mvkys})")
 
         re_apaga.mv_delete_dml
       end
@@ -69,6 +69,7 @@ module Abank
 
     # (see CLI#tag)
     def mv_classifica
+      @ctlct = []
       stp("call #{BD}.uct()")
       puts("MOVIMENTOS CLASSIFICADOS #{bqnrs}")
       @ctlct = sql("select ct from #{BD}.ca") if bqnrs.positive?
@@ -150,7 +151,7 @@ module Abank
 
     # @return [String] sql para obter movimentos novos (depois da ultima renda do contrato arrendamento)
     def sql_novo_mv(mdl)
-      "select * from #{BD}.gmv where ct='#{opcao[:c]}' and dl>='#{(mdl + 1).strftime(DF)}' order by 1,2"
+      "select * from #{BD}.gmn where ct='#{opcao[:c]}' and dl>='#{(mdl + 1).strftime(DF)}' order by 1,2"
     end
 
     # @return [String] sql para obter dados do inicio contrato arrendamento
