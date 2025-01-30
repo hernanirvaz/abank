@@ -54,7 +54,7 @@ module Abank
       @ctlct = []
       unless mvkys.empty?
         # obtem lista contratos arrendamento associados aos movimentos a apagar
-        @ctlct = sql("select distinct ct from #{BD}.gmr where #{BD}.ky(dl,dv,ds,vl,nc) in(#{mvkys})")
+        @ctlct = sql("select distinct ct from #{BD}.gmr where ky in(#{mvkys})")
 
         re_apaga.mv_delete_dml
       end
@@ -63,7 +63,7 @@ module Abank
 
     # apaga movimentos no bigquery
     def mv_delete_dml
-      dml("delete from #{BD}.mv where #{BD}.ky(dl,dv,ds,vl,nc) in(#{mvkys})")
+      dml("delete from #{BD}.mv where #{BD}.ky(dl,dv,ds,vl,nc,ex) in(#{mvkys})")
       puts("MOVIMENTOS APAGADOS #{bqnrs}")
     end
 

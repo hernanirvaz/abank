@@ -147,7 +147,7 @@ module Abank
 
     # @return [String] sql para movimentos no bigquery
     def sql_existe_mv
-      "select *,#{BD}.ky(dl,dv,ds,vl,nc) ky from #{BD}.mv where nc=#{conta} and dl='#{rowfc[0].strftime(DF)}' and vl=#{rowfc[3]}"
+      "select * from #{BD}.gmv where nc=#{conta} and dl='#{rowfc[0].strftime(DF)}' and vl=#{rowfc[3]}"
     end
 
     # obtem movimento (values.mv) para inserir
