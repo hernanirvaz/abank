@@ -59,7 +59,7 @@ module Abank
     end
 
     desc 'work', 'carrega/apaga dados da folha calculo'
-    option :s, type: :boolean, default: false, desc: 'apaga movimento similar'
+    option :s, type: :boolean, default: false, desc: 'apaga movimento similar (=data,=valor,<>descricao)'
     option :e, type: :boolean, default: false, desc: 'apaga movimento igual'
     option :v, banner: 'DATA', default: '',    desc: 'data valor para movimentos a carregar'
     option :g, banner: 'TAG',  default: '',    desc: 'classificacao para movimentos a carregar'

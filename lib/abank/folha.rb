@@ -137,7 +137,7 @@ module Abank
 
     # @return [String] texto linha existencia multipla formatada para display
     def linha_multiplas
-      "#{linha_base} MULT(#{bqres.count})"
+      "#{linha_base} MULT ##{bqres.count}"
     end
 
     # obtem chaves movimento (keysin.mv) para apagar
