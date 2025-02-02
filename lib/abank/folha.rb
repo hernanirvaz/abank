@@ -132,12 +132,12 @@ module Abank
     # @return [String] texto linha similar formatada para display
     def linha_similar
       add_kys if opcao[:s]
-      "#{linha_base} SIMI #{format('%<v1>-20.20s', v1: bqres.first[:ds].strip)}"
+      "#{linha_base} SIMI #{format('%<v1>20d %<v2>-34.34s', v1: bqres.first[:ky], v2: bqres.first[:ds].strip)}"
     end
 
     # @return [String] texto linha existencia multipla formatada para display
     def linha_multiplas
-      "#{linha_base} MULT ##{bqres.count}"
+      "#{linha_base} ML#{format('%<v0>2d %<v1>20d', v0: bqres.count, v1: bqres.first[:ky])}"
     end
 
     # obtem chaves movimento (keysin.mv) para apagar
