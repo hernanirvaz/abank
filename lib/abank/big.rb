@@ -44,7 +44,7 @@ module Abank
 
     # @return [String] movimentos a apagar (keysin.mv)
     def mvkys
-      opcao[:k][/([-+]*\d)+(,[-+]*\d+)*/].to_s
+      opcao[:k].to_s.scan(/[-+]?\d+/).join(',')
     end
 
     # apaga movimentos & suas rendas associadas no bigquery
@@ -263,8 +263,7 @@ module Abank
     def job(cmd)
       bqjob = bqapi.query_job(cmd)
       bqjob.wait_until_done!
-      err = bqjob.error
-      puts(err['message']) if err
+      puts(bqjob.error['message']) if bqjob.failed?
       bqjob
     end
 

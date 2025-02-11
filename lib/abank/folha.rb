@@ -38,6 +38,8 @@ module Abank
     # @return [Roo::Excelx] folha calculo a processar
     def folha
       @folha ||= Roo::Spreadsheet.open(opcao[:f])
+    rescue StandardError => e
+      raise "Erro ao abrir a folha de cálculo: #{e.message}"
     end
 
     # carrega/mostra folha calculo
@@ -79,15 +81,11 @@ module Abank
       #  array.count > 1 ==> nao pode carregar esta linha
       sql(sql_existe_mv, [{}, {}])
 
-      if linha_naoexiste?
-        linha_base + values_mv
-      elsif linha_existe?
-        linha_existe
-      elsif linha_simila?
-        linha_similar
-      else
-        linha_multiplas
-      end
+      return linha_base + values_mv if linha_naoexiste?
+      return linha_existe if linha_existe?
+      return linha_similar if linha_simila?
+
+      linha_multiplas
     end
 
     # insere & classifica movimentos no bigquery
