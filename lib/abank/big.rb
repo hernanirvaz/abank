@@ -141,7 +141,8 @@ module Abank
 
     # @return [String] texto formatado que representa lista de contratos arrendamento
     def str_lc(sep = "'")
-      ctlct.map { |cid| sep + cid[:ct] + sep }.join(',')
+      ctlct.map { |cid| sep + cid[:ct] + sep }
+           .join(',')
     end
 
     # @return [String] sql para obter ultima renda do contrato arrendamento
@@ -159,7 +160,7 @@ module Abank
       cti = opcao[:c]
       dat = opcao[:d]
       if dat.empty?
-        'select ct,EXTRACT(YEAR FROM DATE_TRUNC(dl,MONTH)) ano,0 cnt,DATE_TRUNC(dl,MONTH) dl,0 dias '\
+        'select ct,EXTRACT(YEAR FROM DATE_TRUNC(dl,MONTH)) ano,0 cnt,DATE_TRUNC(dl,MONTH) dl,0 dias ' \
           "from #{BD}.mv where ct='#{cti}' order by dl limit 1"
       else
         "select '#{cti}' ct,EXTRACT(YEAR FROM DATE '#{dat}') ano,0 cnt,DATE '#{dat}' dl,0 dias"

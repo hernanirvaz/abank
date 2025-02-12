@@ -39,7 +39,7 @@ module Abank
     def folha
       @folha ||= Roo::Spreadsheet.open(opcao[:f])
     rescue StandardError => e
-      raise "Erro ao abrir a folha de cálculo: #{e.message}"
+      raise("Erro ao abrir a folha de cálculo: #{e.message}")
     end
 
     # carrega/mostra folha calculo
@@ -152,7 +152,7 @@ module Abank
     #
     # @return [String] ' NOVO'
     def values_mv
-      @mvvls += ",('#{rowfc[0].strftime(DF)}','#{dvc.strftime(DF)}','#{rowfc[2]}',#{rowfc[3]}"\
+      @mvvls += ",('#{rowfc[0].strftime(DF)}','#{dvc.strftime(DF)}','#{rowfc[2]}',#{rowfc[3]}" \
                 ",#{conta},#{dvc.year},#{dvc.month},'#{tpc}',#{ctc},null,null)"
       ' NOVO'
     end

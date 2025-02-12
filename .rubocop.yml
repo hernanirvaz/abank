@@ -1,5 +1,5 @@
 AllCops:
-  TargetRubyVersion: 2.7
+  TargetRubyVersion: 3.1
   EnabledByDefault: true
 
 Style/Copyright:
@@ -10,6 +10,3 @@ Lint/ConstantResolution:
 
 Style/ConstantVisibility:
     Enabled: false
-
-Style/EmptyElse:
-    EnforcedStyle: nil

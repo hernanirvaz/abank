@@ -55,7 +55,7 @@ module Abank
     desc 'recriare', 'atualiza rendas dos contratos ativos'
     # atualiza rendas dos contratos ativos
     def recriare
-      Big.new().re_atualiza
+      Big.new.re_atualiza
     end
 
     desc 'work', 'carrega/apaga dados da folha calculo'
