@@ -152,8 +152,7 @@ module Abank
     #
     # @return [String] ' NOVO'
     def values_mv
-      @mvvls += ",('#{rowfc[0].strftime(DF)}','#{dvc.strftime(DF)}','#{rowfc[2]}',#{rowfc[3]}" \
-                ",#{conta},#{dvc.year},#{dvc.month},'#{tpc}',#{ctc},null,null)"
+      @mvvls += ",('#{rowfc[0].strftime(DF)}','#{dvc.strftime(DF)}','#{rowfc[2]}',#{rowfc[3]},#{conta},#{dvc.year},#{dvc.month},'#{tpc}',#{ctc},null,null)"
       ' NOVO'
     end
 

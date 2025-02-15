@@ -1,12 +1,66 @@
+---
 AllCops:
   TargetRubyVersion: 3.1
   EnabledByDefault: true
+  NewCops: enable  # Automatically enable new cops introduced in updates
 
 Style/Copyright:
-    Enabled: false
+  Enabled: false
 
 Lint/ConstantResolution:
-    Enabled: false
+  Enabled: false
 
 Style/ConstantVisibility:
-    Enabled: false
+  Enabled: false
+
+# Formatting Rules
+Layout/LineLength:
+  Max: 160  # Increase max line length from default 80 to 100
+  AllowHeredoc: true
+  AllowURI: true
+
+Layout/IndentationWidth:
+  Width: 2  # Use 2 spaces for indentation (default)
+
+Layout/SpaceInsideHashLiteralBraces:
+  EnforcedStyle: space
+
+Style/TrailingCommaInArrayLiteral:
+  EnforcedStyleForMultiline: consistent_comma
+
+Style/TrailingCommaInHashLiteral:
+  EnforcedStyleForMultiline: consistent_comma
+
+# Disable specific cops
+Metrics/MethodLength:
+  Max: 15  # Allow methods up to 15 lines (default is too strict)
+  Exclude:
+    - "spec/**/*.rb"  # Ignore test files
+
+Metrics/BlockLength:
+  Max: 20
+  Exclude:
+    - "Rakefile"
+
+# Linting
+Lint/UselessAssignment:
+  Enabled: true
+
+Lint/AmbiguousOperatorPrecedence:
+  Enabled: true
+
+# Style Preferences
+Style/FrozenStringLiteralComment:
+  Enabled: false  # Don't require `# frozen_string_literal: true` at the top of files
+
+Style/StringLiterals:
+  EnforcedStyle: single_quotes
+
+Style/NumericLiterals:
+  MinDigits: 5  # Add underscores for long numbers: `100_000`
+
+Style/Documentation:
+  Enabled: false  # Don't require top-level documentation comments
+
+Style/RequireOrder:
+  Enabled: false

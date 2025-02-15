@@ -10,8 +10,7 @@ Gem::Specification.new do |spec|
   spec.homepage    = 'https://github.com/hernanirvaz/abank'
   spec.license     = 'MIT'
   spec.summary     = 'Arquiva movimentos conta-corrente, conta-cartao do activobank no bigquery.'
-  spec.description = "#{spec.summary} Permite apagar/recriar movimentos/rendas ja no bigquery. "\
-                     ' Permite ainda classificar movimentos no bigquery.'
+  spec.description = "#{spec.summary} Permite apagar/recriar movimentos/rendas ja no bigquery.  " + 'Permite ainda classificar movimentos no bigquery.'
 
   spec.required_ruby_version    = Gem::Requirement.new('~> 3.1')
   spec.metadata['homepage_uri'] = spec.homepage
@@ -32,11 +31,11 @@ Gem::Specification.new do |spec|
   spec.add_development_dependency('reek')
   spec.add_development_dependency('rubocop')
   spec.add_development_dependency('rubocop-rake')
-  spec.add_development_dependency('rufo')
   spec.add_development_dependency('solargraph')
   spec.add_development_dependency('yard')
 
   spec.add_dependency('google-cloud-bigquery')
   spec.add_dependency('roo')
   spec.add_dependency('thor')
+  spec.metadata['rubygems_mfa_required'] = 'true'
 end
