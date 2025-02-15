@@ -1,0 +1,6 @@
+---
+detectors:
+  TooManyStatements:
+    exclude:
+    - initialize
+    max_statements: 10
