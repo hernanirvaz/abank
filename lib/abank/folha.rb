@@ -66,10 +66,10 @@ module Abank
     # @return [Boolean] linha com valores para processar?
     def ok?(linha)
       @rowfc = linha.values
-      return false if rowfc[0].is_a?(String)
+      return false if rowfc.first.is_a?(String)
 
       rowfc[2] = rowfc[2].strip
-      rowfc[3] = -1 * rowfc[3] if conta > 1
+      rowfc[3] = rowfc[3] * -1 if conta > 1
       true
     end
 
@@ -93,7 +93,7 @@ module Abank
     # @return [Big] acesso a base dados abank no bigquery
     def mv_insert
       unless mvvls.empty?
-        @mvvls = mvvls[1..] if mvvls[0] == ','
+        @mvvls = mvvls[1..] if mvvls.first == ','
         dml("insert #{BD}.mv VALUES#{mvvls}")
         puts("MOVIMENTOS INSERIDOS #{bqnrs}")
         mv_classifica if bqnrs.positive?
@@ -118,7 +118,7 @@ module Abank
 
     # @return [String] texto base formatado para display
     def linha_base
-      "#{rowfc[0].strftime(DF)} #{format('%<v3>-34.34s %<v4>8.2f', v3: rowfc[2], v4: rowfc[3])}"
+      "#{rowfc.first.strftime(DF)} #{format('%<v3>-34.34s %<v4>8.2f', v3: rowfc[2], v4: rowfc[3])}"
     end
 
     # @return [String] texto linha existente formatada para display
@@ -145,14 +145,14 @@ module Abank
 
     # @return [String] sql para movimentos no bigquery
     def sql_existe_mv
-      "select * from #{BD}.gmv where nc=#{conta} and dl='#{rowfc[0].strftime(DF)}' and vl=#{rowfc[3]}"
+      "select * from #{BD}.gmv where nc=#{conta} and dl='#{rowfc.first.strftime(DF)}' and vl=#{rowfc[3]}"
     end
 
     # obtem movimento (values.mv) para inserir
     #
     # @return [String] ' NOVO'
     def values_mv
-      @mvvls += ",('#{rowfc[0].strftime(DF)}','#{dvc.strftime(DF)}','#{rowfc[2]}',#{rowfc[3]},#{conta},#{dvc.year},#{dvc.month},'#{tpc}',#{ctc},null,null)"
+      @mvvls += ",('#{rowfc.first.strftime(DF)}','#{dvc.strftime(DF)}','#{rowfc[2]}',#{rowfc[3]},#{conta},#{dvc.year},#{dvc.month},'#{tpc}',#{ctc},null,null)"
       ' NOVO'
     end
 

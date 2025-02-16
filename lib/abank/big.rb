@@ -112,8 +112,8 @@ module Abank
     def ct_dados
       ctlct.map! do |ctr|
         opcao[:c] = ctr[:ct]
-        lre = sql(sql_last_re)[0]
-        lre[:dl] += -1 if lre[:cnt] == 0
+        lre = sql(sql_last_re).first
+        lre[:dl] += -1 if lre[:cnt].zero?
         ctr.merge(lre, mv: sql(sql_novo_mv(lre[:dl])))
       end
       self
@@ -141,8 +141,7 @@ module Abank
 
     # @return [String] texto formatado que representa lista de contratos arrendamento
     def str_lc(sep = "'")
-      ctlct.map { |cid| sep + cid[:ct] + sep }
-           .join(',')
+      ctlct.map { |cid| sep + cid[:ct] + sep }.join(',')
     end
 
     # @return [String] sql para obter ultima renda do contrato arrendamento

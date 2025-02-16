@@ -7,7 +7,7 @@ require('abank/version')
 
 # @author Hernani Rodrigues Vaz
 module Abank
-  DR = "/home/#{`whoami`.chomp}/Downloads"
+  DR = "/home/#{`whoami`.chomp}/Downloads".freeze
 
   # CLI para carregar folhas calculo comuns no bigquery
   class CLI < Thor
@@ -65,7 +65,7 @@ module Abank
     option :g, banner: 'TAG',  default: '',    desc: 'classificacao para movimentos a carregar'
     # carrega/apaga dados da folha calculo
     def work
-      Dir.glob("#{DR}/*.xlsx").sort.each do |file|
+      Dir.glob("#{DR}/*.xlsx").each do |file|
         Folha.new(options.transform_keys(&:to_sym).merge(f: file, i: true)).processa_xls
       end
     end
@@ -73,7 +73,7 @@ module Abank
     desc 'show', 'mostra dados da folha calculo'
     # mostra folha calculo
     def show
-      Dir.glob("#{DR}/*.xlsx").sort.each do |file|
+      Dir.glob("#{DR}/*.xlsx").each do |file|
         Folha.new(options.merge(f: file)).processa_xls
       end
     end
