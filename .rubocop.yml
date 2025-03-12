@@ -18,7 +18,7 @@ Metrics/AbcSize:
 
 # Formatting Rules
 Layout/LineLength:
-  Max: 160
+  Max: 185
   AllowHeredoc: true
   AllowURI: true
 
@@ -26,7 +26,7 @@ Layout/IndentationWidth:
   Width: 2
 
 Layout/SpaceInsideHashLiteralBraces:
-  EnforcedStyle: space
+  EnforcedStyle: no_space
 
 Layout/SingleLineBlockChain:
   Enabled: false
@@ -64,4 +64,7 @@ Lint/AmbiguousOperatorPrecedence:
   Enabled: true
 
 Lint/ConstantResolution:
+  Enabled: false
+
+Lint/UnifiedInteger:
   Enabled: false

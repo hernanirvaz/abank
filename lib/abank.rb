@@ -8,6 +8,7 @@ require('abank/version')
 # @author Hernani Rodrigues Vaz
 module Abank
   DR = "/home/#{`whoami`.chomp}/Downloads".freeze
+  BD = 'hernanilr.ab'
 
   # CLI para carregar folhas calculo comuns no bigquery
   class CLI < Thor
@@ -43,13 +44,11 @@ module Abank
 
     desc 'recriact', 'atualiza rendas de contrato arrendamento'
     option :c, banner: 'CONTRATO', required: true, desc: 'Identificador contrato arrendamento'
-    option :d, banner: 'DATA', default: '',        desc: 'data contrato arrendamento'
-    option :t, type: :boolean, default: false,     desc: 'apaga todas as rendas?'
     # atualiza rendas de contrato arrendamento
     def recriact
       opc = options[:c]
-      Big.new(c: opc, t: options[:t]).ct_apaga
-      Big.new(c: opc, t: true, d: options[:d]).ct_cria
+      Big.new(c: opc, t: false).ct_apaga
+      Big.new(c: opc, t: true).ct_cria
     end
 
     desc 'recriare', 'atualiza rendas dos contratos ativos'

@@ -3,16 +3,10 @@
 require('roo')
 
 module Abank
-  # @see Folha
   class Folha < Big
-    # @return [Roo::Excelx] folha calculo a processar
-    # attr_reader :folha
-
     # @return [Array] row folha calculo em processamento
-    attr_reader :rowfc
-
     # @return [String] movimentos a inserir (values.mv)
-    attr_reader :mvvls
+    attr_reader :rowfc, :mvvls
 
     # acesso a folha calculo & base dados abank no bigquery
     #
@@ -24,147 +18,109 @@ module Abank
     # @option opcoes [String]  :v ('') data valor movimentos (mv)
     # @option opcoes [String]  :g ('') classificacao movimentos (mv)
     def initialize(opcoes = {})
-      @opcao = super
-      @opcao[:s] = opcoes.fetch(:s, false)
-      @opcao[:e] = opcoes.fetch(:e, false)
-      @opcao[:i] = opcoes.fetch(:i, false)
-      @opcao[:v] = opcoes.fetch(:v, '')
-      @opcao[:g] = opcoes.fetch(:g, '')
-      # acumuladores necessitam init
-      @opcao[:k] = ''
-      @mvvls = ''
-    end
-
-    # @return [Roo::Excelx] folha calculo a processar
-    def folha
-      @folha ||= Roo::Spreadsheet.open(opcao[:f])
-    rescue StandardError => e
-      raise("Erro ao abrir a folha de cálculo: #{e.message}")
+      super
+      @opcao = opcao.merge(s: opcoes.fetch(:s, false), e: opcoes.fetch(:e, false), i: opcoes.fetch(:i, false), v: opcoes.fetch(:v, ''), g: opcoes.fetch(:g, ''), k: +'', f: opcoes[:f])
+      @mvvls = []
     end
 
     # carrega/mostra folha calculo
     def processa_xls
       puts("\n#{folha.info}")
-      folha.sheet(0).parse(header_search: ['Data Lanc.', 'Data Valor', 'Descrição', 'Valor']) do |row|
-        puts(processa_linha) if ok?(row)
+      mvs = sql("select * from #{BD}.gmv where nc=@nc", nc: conta).group_by { |m| [m[:dl], m[:vl].to_f] }
+      folha.sheet(0).parse(header_search: ['Data Lanc.', 'Data Valor', 'Descrição', 'Valor']) do |r|
+        next unless valid?(r.values)
+
+        @bqres = mvs[[rowfc[0], rowfc[3]]] || []
+        if bqres.empty?
+          puts(lnexi)
+        elsif bqres.one? && bqres.first[:ds].strip == rowfc[2]
+          puts(lexis)
+        elsif bqres.one?
+          puts(lsiml)
+        else
+          puts(lmult)
+        end
       end
       return unless opcao[:i]
 
-      # processa movimentos & atualiza rendas
       mv_delete.mv_insert.ct_dados.re_insert
     end
 
-    # @return [Integer] numero conta associado a folha calculo
+    private
+
+    # @return [Roo::Excelx] folha calculo a processar
+    def folha
+      @folha ||= Roo::Spreadsheet.open(opcao[:f])
+    rescue StandardError
+      raise("Erro ao abrir a folha de cálculo: #{opcao[:f]}")
+    end
+
     # @example
     #   mov*.xlsx     --> 1 --> conta-corrente
     #   movCard*.xlsx --> 2 --> conta-cartao
+    # @return [Integer] numero conta associado a folha calculo
     def conta
-      opcao[:f].match?(/card/i) ? 2 : 1
+      @conta ||= opcao[:f].match?(/card/i) ? 2 : 1
     end
 
-    # @param [Hash] linha da folha calculo em processamento
-    # @return [Boolean] linha com valores para processar?
-    def ok?(linha)
-      @rowfc = linha.values
-      return false if rowfc.first.is_a?(String)
+    # @param [Array] row folha calculo em processamento
+    # @return [Boolean] linha com valores correctos para processar?
+    def valid?(row)
+      return false unless row[0].is_a?(Date) && row[1].is_a?(Date)
 
-      rowfc[2] = rowfc[2].strip
-      rowfc[3] = rowfc[3] * -1 if conta > 1
+      row[2] = row[2].to_s.strip.gsub("'", '').gsub('\\', '') # Descrição
+      row[3] = row[3].to_f * (conta == 1 ? 1 : -1) # Valor
+      @rowfc = row
       true
-    end
-
-    # @return [String] texto informativo formatado da linha processada
-    def processa_linha
-      # pesquisa existencia linha folha calculo no bigquery
-      #  array.count = 0 ==> pode carregar esta linha
-      #  array.count = 1 ==> mais testes necessarios
-      #  array.count > 1 ==> nao pode carregar esta linha
-      sql(sql_existe_mv, [{}, {}])
-
-      return linha_base + values_mv if linha_naoexiste?
-      return linha_existe if linha_existe?
-      return linha_similar if linha_simila?
-
-      linha_multiplas
-    end
-
-    # insere & classifica movimentos no bigquery
-    #
-    # @return [Big] acesso a base dados abank no bigquery
-    def mv_insert
-      unless mvvls.empty?
-        @mvvls = mvvls[1..] if mvvls.first == ','
-        dml("insert #{BD}.mv VALUES#{mvvls}")
-        puts("MOVIMENTOS INSERIDOS #{bqnrs}")
-        mv_classifica if bqnrs.positive?
-      end
-      self
-    end
-
-    # @return [Boolean] linha folha calculo nao existe no bigquery?
-    def linha_naoexiste?
-      bqres.empty?
-    end
-
-    # @return [Boolean] linha folha calculo existe no bigquery?
-    def linha_existe?
-      bqres.count == 1 && bqres.first[:ds].strip == rowfc[2]
-    end
-
-    # @return [Boolean] linha folha calculo existe parecida no bigquery?
-    def linha_simila?
-      bqres.count == 1 && bqres.first[:ds].strip != rowfc[2]
+    rescue StandardError => e
+      puts("Error processing row values: #{e.message}\nRow: #{row.inspect}")
+      false
     end
 
     # @return [String] texto base formatado para display
-    def linha_base
-      "#{rowfc.first.strftime(DF)} #{format('%<v3>-34.34s %<v4>8.2f', v3: rowfc[2], v4: rowfc[3])}"
+    def lbase
+      format('%<dt>10s %<v3>-34.34s %<v4>8.2f', dt: rowfc[0].strftime(DF), v3: rowfc[2], v4: rowfc[3])
+    end
+
+    # @return [String] novo texto base formatado para display
+    def lnexi
+      @mvvls << "('#{rowfc[0].iso8601}','#{dvc.iso8601}','#{rowfc[2]}',#{rowfc[3]},#{conta},#{dvc.year},#{dvc.month},'#{tpc}',#{ctc},null,null)"
+      "#{lbase} NOVO"
     end
 
     # @return [String] texto linha existente formatada para display
-    def linha_existe
+    def lexis
       add_kys if opcao[:e]
-      "#{linha_base} EXIS #{format('%<v1>20d', v1: bqres.first[:ky])}"
+      "#{lbase} EXIS #{format('%<v1>20d', v1: bqres.first[:ky])}"
     end
 
     # @return [String] texto linha similar formatada para display
-    def linha_similar
+    def lsiml
       add_kys if opcao[:s]
-      "#{linha_base} SIMI #{format('%<v1>20d %<v2>-34.34s', v1: bqres.first[:ky], v2: bqres.first[:ds].strip)}"
+      "#{lbase} SIMI #{format('%<v1>20d %<v2>-34.34s', v1: bqres.first[:ky], v2: bqres.first[:ds].strip)}"
     end
 
     # @return [String] texto linha existencia multipla formatada para display
-    def linha_multiplas
-      "#{linha_base} ML#{format('%<v0>2d %<v1>20d', v0: bqres.count, v1: bqres.first[:ky])}"
+    def lmult
+      "#{lbase} ML#{format('%<v0>2d %<v1>20d', v0: bqres.count, v1: bqres.first[:ky])}"
     end
 
-    # obtem chaves movimento (keysin.mv) para apagar
     def add_kys
-      bqres.each { |row| opcao[:k] += ",#{row[:ky]}" }
-    end
-
-    # @return [String] sql para movimentos no bigquery
-    def sql_existe_mv
-      "select * from #{BD}.gmv where nc=#{conta} and dl='#{rowfc.first.strftime(DF)}' and vl=#{rowfc[3]}"
-    end
-
-    # obtem movimento (values.mv) para inserir
-    #
-    # @return [String] ' NOVO'
-    def values_mv
-      @mvvls += ",('#{rowfc.first.strftime(DF)}','#{dvc.strftime(DF)}','#{rowfc[2]}',#{rowfc[3]},#{conta},#{dvc.year},#{dvc.month},'#{tpc}',#{ctc},null,null)"
-      ' NOVO'
+      opcao[:k] << bqres.each_with_object(+'') { |r, s| s << ",#{r[:ky]}" }
     end
 
     # @return [Date] data valor corrigida
     def dvc
-      dvl = opcao[:v]
+      dvl = opcao[:v].to_s
       dvl.empty? ? rowfc[1] : Date.parse(dvl)
+    rescue ArgumentError
+      puts("Invalid date format in #{opcao[:v].inspect}")
+      rowfc[1]
     end
 
     # @return [String] classificacao do movimento (null --> classificacao automatica)
     def ctc
-      cmv = opcao[:g]
+      cmv = opcao[:g].to_s
       cmv.empty? ? 'null' : "'#{cmv}'"
     end
 
