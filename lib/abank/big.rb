@@ -41,14 +41,14 @@ module Abank
     # @return [Big] acesso a base dados abank no bigquery
     def mv_delete
       @ctlct = []
-      return self if mvkys.empty? && docnt.zero?
+      return self if mvkys.empty? && contadel.zero?
 
       # obtem lista contratos arrendamento associados aos movimentos a apagar
       @ctlct =
-        if docnt.zero?
+        if contadel.zero?
           sql("select distinct ct from #{BD}.gmr where ky IN UNNEST(@kys)", kys: mvkys)
         else
-          sql("select distinct ct from #{BD}.gmr where nc=@nc", nc: docnt)
+          sql("select distinct ct from #{BD}.gmr where nc=@nc", nc: contadel)
         end
       re_apaga
       mv_delete_dml
@@ -125,14 +125,14 @@ module Abank
 
     private
 
-    # @return [Integer] numero conta movimentos apagar
-    def docnt
-      @docnt ||= opcao[:n] > 3 ? opcao[:n] : 0
-    end
-
     # @return [Google::Cloud::Bigquery] API bigquery
     def bqapi
       @bqapi ||= Google::Cloud::Bigquery.new
+    end
+
+    # @return [Integer] numero conta apagar movimentos
+    def contadel
+      @contadel ||= opcao[:n] > 3 ? opcao[:n] : 0
     end
 
     # @return [String] movimentos a apagar (keysin.mv)
@@ -215,10 +215,10 @@ module Abank
 
     # apaga movimentos no bigquery
     def mv_delete_dml
-      if docnt.zero?
+      if contadel.zero?
         dml("delete from #{BD}.mv where #{BD}.ky(dl,dv,ds,vl,nc,ex) IN UNNEST(@kys)", kys: mvkys)
       else
-        dml("delete from #{BD}.mv where nc=@nc", nc: docnt)
+        dml("delete from #{BD}.mv where nc=@nc", nc: contadel)
       end
       puts("MOVIMENTOS APAGADOS #{bqnrs}")
     end

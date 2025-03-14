@@ -35,7 +35,7 @@ module Abank
 
     # carrega/mostra folha calculo
     def processa_xls
-      puts("\n#{folha.info}")
+      puts("\n#{opcao[:f]}")
       mvs = sql("select * from #{BD}.gmv where nc=@nc", nc: conta).group_by { |m| [m[:dl], m[:vl].to_f] }
       folha.sheet(0).parse(header_search: ['Data Lanc.', 'Data Valor', 'Descrição', 'Valor']) do |r|
         next unless valid?(r.values)
@@ -60,28 +60,38 @@ module Abank
 
     private
 
-    # @return [Roo::Excelx] folha calculo a processar
+    # @return [Roo::Excelx] folha a processar
     def folha
       @folha ||= Roo::Spreadsheet.open(opcao[:f])
     rescue StandardError
       raise("Erro ao abrir a folha de cálculo: #{opcao[:f]}")
     end
 
-    # @return [Integer] obter numero conta a partir das opcoes
-    def fconta
-      return opcao[:n] if opcao[:n] > 2
-
-      opcao[:f].match?(/card/i) ? 2 : 1
+    # @return [Integer] multiplicador valores
+    def sig
+      @sig ||= cartao? ? -1 : 1
     end
 
     # @example
-    #   mov*.xlsx     --> 1 --> conta-corrente
-    #   movCard*.xlsx --> 2 --> conta-cartao
-    #   opcao[:n]     --> 3 --> conta-cash
-    #   opcao[:n]     --> n --> conta-outras
-    # @return [Integer] numero conta associado a folha calculo
+    #   mov*.xlsx     1 --> corrente
+    #   movCard*.xlsx 2 --> cartao
+    #   opcao[:n]     3 --> cash
+    #   opcao[:n]     n --> outras
+    # @return [Integer] numero conta
     def conta
       @conta ||= fconta
+    end
+
+    # @return [Boolean] folha cartao credito
+    def cartao?
+      opcao[:f].match?(/card/i)
+    end
+
+    # @return [Integer] obter numero conta
+    def fconta
+      return opcao[:n] if opcao[:n] > 2
+
+      cartao? ? 2 : 1
     end
 
     # @param [Array] row folha calculo em processamento
@@ -90,7 +100,7 @@ module Abank
       return false unless row[0].is_a?(Date) && row[1].is_a?(Date)
 
       row[2] = row[2].to_s.strip.gsub("'", '').gsub('\\', '') # Descrição
-      row[3] = row[3].to_f * (conta == 2 ? -1 : 1) # Valor
+      row[3] = row[3].to_f * sig # Valor
       @rowfc = row
       true
     rescue StandardError => e
@@ -105,7 +115,7 @@ module Abank
 
     # @return [String] novo texto base formatado para display
     def lnexi
-      @mvvls << "('#{rowfc[0].iso8601}','#{dvc.iso8601}','#{rowfc[2]}',#{rowfc[3]},#{conta},#{dvc.year},#{dvc.month},'#{tpc}',#{ctc},null,null)"
+      @mvvls << "('#{rowfc[0].iso8601}','#{dvc.iso8601}','#{rowfc[2]}',#{rowfc[3]},#{conta},#{dvc.year},#{dvc.month},#{ctc},null,null)"
       "#{lbase} NOVO"
     end
 
@@ -142,11 +152,6 @@ module Abank
     def ctc
       cmv = opcao[:g].to_s
       cmv.empty? ? 'null' : "'#{cmv}'"
-    end
-
-    # @return [String] tipo movimento c[redito] ou d[ebito]
-    def tpc
-      rowfc[3].positive? ? 'c' : 'd'
     end
   end
 end

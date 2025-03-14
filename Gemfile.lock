@@ -1,7 +1,7 @@
 PATH
   remote: .
   specs:
-    abank (0.7.1)
+    abank (0.7.2)
       google-cloud-bigquery
       roo
       thor
@@ -80,7 +80,7 @@ GEM
       faraday (>= 1.0, < 3.a)
     google-cloud-errors (1.5.0)
     google-logging-utils (0.1.0)
-    googleauth (1.13.1)
+    googleauth (1.14.0)
       faraday (>= 1.0, < 3.a)
       google-cloud-env (~> 2.2)
       google-logging-utils (~> 0.1)
@@ -107,10 +107,10 @@ GEM
     mutex_m (0.3.0)
     net-http (0.6.0)
       uri
-    nokogiri (1.18.3)
+    nokogiri (1.18.4)
       mini_portile2 (~> 2.8.2)
       racc (~> 1.4)
-    nokogiri (1.18.3-x86_64-linux-gnu)
+    nokogiri (1.18.4-x86_64-linux-gnu)
       racc (~> 1.4)
     observer (0.1.2)
     os (1.1.4)
