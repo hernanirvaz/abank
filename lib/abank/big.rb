@@ -17,6 +17,7 @@ module Abank
     # acesso a base dados abank no bigquery
     # @param [Thor::CoreExt::HashWithIndifferentAccess] opcoes trabalho
     # @option opcoes [String]  :k ('') movimentos a apagar (keysin.mv)
+    # @option opcoes [Integer] :n (0) conta apagar movimentos >3 outras (mv)
     # @option opcoes [String]  :c ('') id contrato arrendamento (re)
     # @option opcoes [String]  :d ('') data inicio contrato arrendamento (re)
     # @option opcoes [Boolean] :t (false) trabalha todas as rendas? (re)
@@ -40,10 +41,15 @@ module Abank
     # @return [Big] acesso a base dados abank no bigquery
     def mv_delete
       @ctlct = []
-      return self if mvkys.empty?
+      return self if mvkys.empty? && docnt.zero?
 
       # obtem lista contratos arrendamento associados aos movimentos a apagar
-      @ctlct = sql("select distinct ct from #{BD}.gmr where ky IN UNNEST(@kys)", kys: mvkys)
+      @ctlct =
+        if docnt.zero?
+          sql("select distinct ct from #{BD}.gmr where ky IN UNNEST(@kys)", kys: mvkys)
+        else
+          sql("select distinct ct from #{BD}.gmr where nc=@nc", nc: docnt)
+        end
       re_apaga
       mv_delete_dml
       self
@@ -92,7 +98,7 @@ module Abank
         opcao[:c] = ctr[:ct]
         lre = sql("select * from #{BD}.glr where ct=@ct order by ano desc,cnt desc limit 1", ct: opcao[:c]).first
         lre[:dl] -= 1 if lre[:cnt].zero?
-        ctr.merge(lre, mv: sql("select * from #{BD}.gmn where ct=@ct and dl>=@ud order by 1,2", ct: opcao[:c], ud: lre[:dl] + 1))
+        ctr.merge(lre, mv: sql("select * from #{BD}.gmr where ct=@ct and dv>=@ud order by 1,2", ct: opcao[:c], ud: lre[:dl] + 1))
       end
       self
     end
@@ -118,6 +124,11 @@ module Abank
     end
 
     private
+
+    # @return [Integer] numero conta movimentos apagar
+    def docnt
+      @docnt ||= opcao[:n] > 3 ? opcao[:n] : 0
+    end
 
     # @return [Google::Cloud::Bigquery] API bigquery
     def bqapi
@@ -204,7 +215,11 @@ module Abank
 
     # apaga movimentos no bigquery
     def mv_delete_dml
-      dml("delete from #{BD}.mv where #{BD}.ky(dl,dv,ds,vl,nc,ex) IN UNNEST(@kys)", kys: mvkys)
+      if docnt.zero?
+        dml("delete from #{BD}.mv where #{BD}.ky(dl,dv,ds,vl,nc,ex) IN UNNEST(@kys)", kys: mvkys)
+      else
+        dml("delete from #{BD}.mv where nc=@nc", nc: docnt)
+      end
       puts("MOVIMENTOS APAGADOS #{bqnrs}")
     end
 

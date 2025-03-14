@@ -18,8 +18,9 @@ module Abank
       Big.new(options.to_h).mv_classifica.ct_dados.re_insert
     end
 
-    desc 'apagamv', 'apaga movimentos'
-    option :k, banner: 'KEY[,KEY...]', required: true, desc: 'keys movimentos a apagar'
+    desc 'apagamv', 'apaga movimentos keys|conta'
+    option :k, banner: 'KEY[,KEY...]', default: '', desc: 'keys movimentos apagar'
+    option :n, banner: 'CONTA', type: :numeric, default: 0, desc: 'conta movimentos apagar (>3 outras)'
     # apaga movimentos
     def apagamv
       Big.new(options.transform_keys(&:to_sym)).mv_delete.ct_dados.re_insert
@@ -60,7 +61,8 @@ module Abank
     desc 'work', 'carrega/apaga dados da folha calculo'
     option :s, type: :boolean, default: false, desc: 'apaga movimento similar (=data,=valor,<>descricao)'
     option :e, type: :boolean, default: false, desc: 'apaga movimento igual'
-    option :v, banner: 'DATA', default: '',    desc: 'data valor para movimentos a carregar'
+    option :n, banner: 'CONTA', type: :numeric, default: 0, desc: 'conta destino (0 auto,1 corrente,2 cartao,3 chash,> outras)'
+    option :v, banner: 'DATA', default: '',    desc: 'data lancamento para movimentos a carregar'
     option :g, banner: 'TAG',  default: '',    desc: 'classificacao para movimentos a carregar'
     # carrega/apaga dados da folha calculo
     def work
@@ -70,10 +72,11 @@ module Abank
     end
 
     desc 'show', 'mostra dados da folha calculo'
+    option :n, banner: 'CONTA', type: :numeric, default: 0, desc: 'conta destino (0 auto,1 corrente,2 cartao,3 chash,> outras)'
     # mostra folha calculo
     def show
       Dir.glob("#{DR}/*.xlsx").each do |file|
-        Folha.new(options.merge(f: file)).processa_xls
+        Folha.new(options.transform_keys(&:to_sym).merge(f: file)).processa_xls
       end
     end
 

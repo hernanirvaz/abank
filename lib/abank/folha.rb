@@ -15,11 +15,21 @@ module Abank
     # @option opcoes [Boolean] :s (false) apaga movimento similar? (mv)
     # @option opcoes [Boolean] :e (false) apaga movimento igual? (mv)
     # @option opcoes [Boolean] :i (false) insere movimento novo? (mv)
+    # @option opcoes [Integer] :n (0) conta dos movimentos (mv)
     # @option opcoes [String]  :v ('') data valor movimentos (mv)
     # @option opcoes [String]  :g ('') classificacao movimentos (mv)
     def initialize(opcoes = {})
       super
-      @opcao = opcao.merge(s: opcoes.fetch(:s, false), e: opcoes.fetch(:e, false), i: opcoes.fetch(:i, false), v: opcoes.fetch(:v, ''), g: opcoes.fetch(:g, ''), k: +'', f: opcoes[:f])
+      @opcao = opcao.merge(
+        s: opcoes.fetch(:s, false),
+        e: opcoes.fetch(:e, false),
+        i: opcoes.fetch(:i, false),
+        n: opcoes.fetch(:n, 0),
+        v: opcoes.fetch(:v, ''),
+        g: opcoes.fetch(:g, ''),
+        k: +'',
+        f: opcoes[:f]
+      )
       @mvvls = []
     end
 
@@ -43,6 +53,8 @@ module Abank
       end
       return unless opcao[:i]
 
+      # para nao apagar movimentos duma conta, por aqui somente com keys opcao[:k]
+      opcao[:n] = 0
       mv_delete.mv_insert.ct_dados.re_insert
     end
 
@@ -55,12 +67,21 @@ module Abank
       raise("Erro ao abrir a folha de cálculo: #{opcao[:f]}")
     end
 
+    # @return [Integer] obter numero conta a partir das opcoes
+    def fconta
+      return opcao[:n] if opcao[:n] > 2
+
+      opcao[:f].match?(/card/i) ? 2 : 1
+    end
+
     # @example
     #   mov*.xlsx     --> 1 --> conta-corrente
     #   movCard*.xlsx --> 2 --> conta-cartao
+    #   opcao[:n]     --> 3 --> conta-cash
+    #   opcao[:n]     --> n --> conta-outras
     # @return [Integer] numero conta associado a folha calculo
     def conta
-      @conta ||= opcao[:f].match?(/card/i) ? 2 : 1
+      @conta ||= fconta
     end
 
     # @param [Array] row folha calculo em processamento
@@ -69,7 +90,7 @@ module Abank
       return false unless row[0].is_a?(Date) && row[1].is_a?(Date)
 
       row[2] = row[2].to_s.strip.gsub("'", '').gsub('\\', '') # Descrição
-      row[3] = row[3].to_f * (conta == 1 ? 1 : -1) # Valor
+      row[3] = row[3].to_f * (conta == 2 ? -1 : 1) # Valor
       @rowfc = row
       true
     rescue StandardError => e
@@ -111,10 +132,9 @@ module Abank
 
     # @return [Date] data valor corrigida
     def dvc
-      dvl = opcao[:v].to_s
-      dvl.empty? ? rowfc[1] : Date.parse(dvl)
+      d = opcao[:v].to_s
+      d.empty? ? rowfc[1] : Date.parse(d)
     rescue ArgumentError
-      puts("Invalid date format in #{opcao[:v].inspect}")
       rowfc[1]
     end
 
