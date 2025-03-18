@@ -55,6 +55,89 @@ module Abank
       self
     end
 
+    # mostra dados movimentos classificacao
+    def mc_show
+      if opcao[:c].to_s.empty?
+        puts("\ndados movimentos NAO classificados")
+        cp1 = sql("select distinct p1 from #{BD}.cc where p1 is not null").map { |p| p[:p1] }
+        cp2 = sql("select distinct p2 from #{BD}.cc where p2 is not null").map { |p| p[:p2] }
+        sql("select * from #{BD}.gpl where ct is null order by 1 desc limit @lm", lm: opcao[:n])
+      else
+        puts("\ndados movimentos JA classificados por:")
+        cc_show
+        cp1 = []
+        cp2 = []
+        sql("select * from #{BD}.gpl where ct=@ct order by 1 desc limit @lm", lm: opcao[:n], ct: opcao[:c])
+      end
+      bqres.reject! do |h|
+        h[:p1s] = h[:p1s] - cp1
+        h[:p2s] = h[:p2s] - cp2 - h[:p1s] - cp1
+        h[:p1s].empty? && h[:p2s].empty?
+      end
+      return if bqres.empty?
+
+      puts('      data         t1    valor palavras p1s/p2s')
+      bqres.each { |l| puts(format('%<dl>10s %<t1>10s %<vl>8.2f %<p1>s%<p2>s', dl: l[:dl].strftime(DF), t1: l[:p1], vl: l[:vl], p1: fpls(l[:p1s], 'p1 '), p2: fpls(l[:p2s], '; p2 '))) }
+    end
+
+    # mostra classificador
+    def cc_show
+      if opcao[:c].to_s.empty? && opcao[:p1].empty? && opcao[:p2].empty?
+        sql("SELECT * FROM #{BD}.cc")
+      elsif opcao[:c].to_s.empty? && opcao[:p1].empty?
+        sql("select * from #{BD}.cc WHERE p2 in unnest(@p2s)", p2s: opcao[:p2])
+      elsif opcao[:c].to_s.empty? && opcao[:p2].empty?
+        sql("select * from #{BD}.cc WHERE p1 in unnest(@p1s)", p1s: opcao[:p1])
+      elsif opcao[:p1].empty? && opcao[:p2].empty?
+        sql("select * from #{BD}.cc WHERE ct=@ct", ct: opcao[:c])
+      elsif opcao[:p1].empty?
+        sql("select * from #{BD}.cc WHERE ct=@ct and p2 in unnest(@p2s)", ct: opcao[:c], p2s: opcao[:p2])
+      elsif opcao[:p2].empty?
+        sql("select * from #{BD}.cc WHERE ct=@ct and p1 in unnest(@p1s)", ct: opcao[:c], p1s: opcao[:p1])
+      else
+        sql("select * from #{BD}.cc WHERE ct=@ct and p1 in unnest(@p1s) and p2 in unnest(@p2s)", ct: opcao[:c], p1s: opcao[:p1], p2s: opcao[:p2])
+      end
+      if bqres.empty?
+        puts('CLASSIFICADOR NAO EXISTE')
+      else
+        @bqres = bqres.group_by { |c| c[:ct] }.map { |k, v| {ct: k, p1s: fplo(v)} }
+        puts('        id palavras p1s/t1s/p2s ')
+        bqres.sort_by { |i| i[:ct] }.each do |l|
+          puts(format('%<ct>8s p %<p1>s', ct: l[:ct], p1: fpls(l[:p1s])))
+        end
+      end
+    end
+
+    # apaga classificador
+    # @return [Big] acesso a base dados abank no bigquery
+    def cc_apaga
+      cc_show
+      return self if bqres.empty?
+
+      if opcao[:p1].empty? && opcao[:p2].empty?
+        dml("delete from #{BD}.cc WHERE ct=@ct", ct: opcao[:c])
+      elsif opcao[:p1].empty?
+        dml("delete from #{BD}.cc WHERE ct=@ct and p2 IN UNNEST(@p2s)", ct: opcao[:c], p2s: opcao[:p2])
+      else
+        dml("delete from #{BD}.cc WHERE ct=@ct and p1 IN UNNEST(@p1s)", ct: opcao[:c], p1s: opcao[:p1])
+      end
+      puts("CLASSIFICADORES APAGADOS #{bqnrs}")
+      return self unless opcao[:t]
+
+      dml("update #{BD}.mv set ct=null,p1=null WHERE ct=@ct", ct: opcao[:c])
+      puts("MOVIMENTOS DES-CLASSIFICADOS #{bqnrs}")
+      self
+    end
+
+    # cria classificador
+    # @return [Big] acesso a base dados abank no bigquery
+    def cc_cria
+      vls = opcao[:p1].map.with_index { |p1, i| "('#{opcao[:c]}',#{fpli(p1)},#{fpli(opcao[:p2][i])},#{fpli(opcao[:t1][i])})" }
+      dml("insert #{BD}.cc values#{vls.join(',')}")
+      puts("CLASSIFICADORES CRIADOS #{bqnrs}")
+      self
+    end
+
     # classifica movimentos no bigquery
     # @return [Big] acesso a base dados abank no bigquery
     def mv_classifica
@@ -62,6 +145,24 @@ module Abank
       stp("call #{BD}.uct()")
       puts("MOVIMENTOS CLASSIFICADOS #{bqnrs}")
       self
+    end
+
+    # mostra contrato arrendamento
+    def ct_mostra
+      sql("SELECT * FROM #{BD}.ca WHERE ct=@ct", ct: opcao[:c])
+      if bqres.empty?
+        puts('CONTRATO NAO EXISTE')
+        return
+      end
+
+      @bqres = bqres.first
+      puts(' crontrato       data    renda')
+      puts(format('%<ct>10s %<dc>10s %<vr>8.2f', ct: bqres[:ct], dc: bqres[:dc].strftime(DF), vr: bqres[:vr]))
+      return unless opcao[:t]
+
+      sql("SELECT * FROM #{BD}.gca WHERE ct=@ct order by ano desc,cnt desc", ct: opcao[:c])
+      puts("\n      data  ano cnt dias")
+      bqres.each { |l| puts(format('%<dl>10s %<a>4d %<c>3d %<d>4d', dl: l[:dl].strftime(DF), a: l[:ano], c: l[:cnt], d: l[:dias])) }
     end
 
     # cria contrato arrendamento no bigquery
@@ -124,6 +225,27 @@ module Abank
     end
 
     private
+
+    # @param [Array<Hash>] acc classificadores (cc)
+    # @return [Array<String]> array palavras formatadas
+    def fplo(acc)
+      acc.map { |p| "#{p[:p1]}#{'[' + p[:t1] + ']' unless p[:t1].to_s.empty?}#{'[2:' + p[:p2] + ']' unless p[:p2].to_s.empty?}" }
+    end
+
+    # @param [Array<String>] apl palavras
+    # @param [String] ini pre-texto final
+    # @return [String] palavras juntas filtradas para mostrar
+    def fpls(apl, ini = '')
+      return '' if apl.empty?
+
+      "#{ini}#{apl.join(' ')}"
+    end
+
+    # @param [String] pla palavra
+    # @return [String] palavra formatada para insert
+    def fpli(pla)
+      pla.to_s.empty? ? 'null' : "'#{pla}'"
+    end
 
     # @return [Google::Cloud::Bigquery] API bigquery
     def bqapi

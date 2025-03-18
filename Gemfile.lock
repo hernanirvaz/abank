@@ -1,7 +1,7 @@
 PATH
   remote: .
   specs:
-    abank (0.7.2)
+    abank (0.7.3)
       google-cloud-bigquery
       roo
       thor
@@ -54,7 +54,7 @@ GEM
       logger
     faraday-net_http (3.4.0)
       net-http (>= 0.5.0)
-    google-apis-bigquery_v2 (0.84.0)
+    google-apis-bigquery_v2 (0.85.0)
       google-apis-core (>= 0.15.0, < 2.a)
     google-apis-core (0.16.0)
       addressable (~> 2.5, >= 2.5.1)
@@ -154,7 +154,7 @@ GEM
       rubocop-ast (>= 1.38.0, < 2.0)
       ruby-progressbar (~> 1.7)
       unicode-display_width (>= 2.4.0, < 4.0)
-    rubocop-ast (1.38.1)
+    rubocop-ast (1.39.0)
       parser (>= 3.3.1.0)
     rubocop-rake (0.7.1)
       lint_roller (~> 1.1)
