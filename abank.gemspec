@@ -34,6 +34,7 @@ Gem::Specification.new do |spec|
   spec.add_development_dependency('solargraph')
   spec.add_development_dependency('yard')
 
+  spec.add_dependency('csv')
   spec.add_dependency('google-cloud-bigquery')
   spec.add_dependency('roo')
   spec.add_dependency('thor')

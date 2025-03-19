@@ -15,7 +15,7 @@ module Abank
     desc 'tag', 'classifica movimentos'
     # classifica movimentos
     def tag
-      Big.new(options.to_h).mv_classifica.ct_dados.re_insert
+      Big.new(options.transform_keys(&:to_sym)).mv_classifica.ct_dados.re_insert
     end
 
     desc 'amv', 'apaga movimentos keys|conta'
