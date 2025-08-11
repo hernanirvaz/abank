@@ -97,10 +97,14 @@ module Abank
     # @param [Array] row folha calculo em processamento
     # @return [Boolean] linha com valores correctos para processar?
     def valid?(row)
+      row[0] = Date.new(1899, 12, 30) + row[0].to_i unless row[0].is_a?(Date) # Data Lancamento
+      row[1] = Date.new(1899, 12, 30) + row[1].to_i unless row[1].is_a?(Date) # Data Valor
       return false unless row[0].is_a?(Date) && row[1].is_a?(Date)
 
       row[2] = row[2].to_s.strip.gsub("'", '').gsub('\\', '') # Descrição
       row[3] = row[3].to_f * sig # Valor
+      return false if row[2].empty? || row[3].zero?
+
       @rowfc = row
       true
     rescue StandardError => e
