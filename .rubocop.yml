@@ -1,6 +1,6 @@
 ---
 AllCops:
-  TargetRubyVersion: 3.1
+  TargetRubyVersion: 3.4
   EnabledByDefault: true
   NewCops: enable  # Automatically enable new cops introduced in updates
 

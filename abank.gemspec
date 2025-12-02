@@ -12,7 +12,7 @@ Gem::Specification.new do |spec|
   spec.summary     = 'Arquiva movimentos conta-corrente, conta-cartao do activobank no bigquery.'
   spec.description = "#{spec.summary} Permite apagar/recriar movimentos/rendas ja no bigquery.  " + 'Permite ainda classificar movimentos no bigquery.'
 
-  spec.required_ruby_version    = Gem::Requirement.new('~> 3.1')
+  spec.required_ruby_version    = Gem::Requirement.new('~> 3.4')
   spec.metadata['homepage_uri'] = spec.homepage
   spec.metadata['yard.run']     = 'yard'
 
