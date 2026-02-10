@@ -192,7 +192,7 @@ module Abank
       re_delete_dml
     end
 
-    # optem lista dados contrato arrendamento (inclui lista movimentos novos)
+    # obtem lista dados contrato arrendamento (inclui lista movimentos novos)
     # @return [Big] acesso a base dados abank no bigquery
     def ct_dados
       ctlct.map! do |ctr|
